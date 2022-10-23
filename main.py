@@ -50,17 +50,17 @@ class flight:
         
         #  Plot for Descending information
         plt.figure(1)
-        ax1 = subplot(3,1,1)
+        ax1 = plt.subplot(3,1,1)
         ax1.plot(self.dataframe["Airspeed"])
         ax1.set_xlabel("Time")
         ax1.set_ylabel("Airspeed (m/s)")
 
-        ax2 = subplot(3,1,2, sharex=ax1)
+        ax2 = plt.subplot(3,1,2, sharex=ax1)
         ax2.plot(self.dataframe["DescendingXK"])
         ax2.set_xlabel("Time")
         ax2.set_ylabel("Descent Rate (m/s)")
 
-        ax3 = subplot(3,1,3, sharex=ax1)
+        ax3 = plt.subplot(3,1,3, sharex=ax1)
         ax3.plot(self.dataframe["Altitude"])
         ax3.set_xlabel("Time")
         ax3.set_ylabel("Altitude (m)")
@@ -129,21 +129,23 @@ class test_obj:
         key = test_name + '_' + flight
         return self.masks[key]
 
-    def main_analysis(self, flight_dataframe):
-        if self.type == 'loiter':
-            if self.flight.propeller == '20x8':
+#    def main_analysis(self, flight_dataframe):
+#        if self.type == 'loiter':
+#            if self.flight.propeller == '20x8':
+#
+#            elif self.flight.propeller == '185x12':
+#                continue
+#            else:
 
-            elif self.flight.propeller == '185x12':
-
-class propeller:
-    # Class containing the aerodynamic information of the propeller
-    def __init__(self):
-        self.name = 
-class esc:
-    # Class containing the efficiency information of the Electronic speed controller
-    self.name
-
-        elif self.type == 'descending':
+#class propeller:
+#    # Class containing the aerodynamic information of the propeller
+#    def __init__(self):
+#        self.name = 
+#class esc:
+#    # Class containing the efficiency information of the Electronic speed controller
+#    self.name
+#
+#        elif self.type == 'descending':
 
         
 
