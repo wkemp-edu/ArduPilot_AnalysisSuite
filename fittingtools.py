@@ -20,6 +20,12 @@ def fit_CLa(x, a, b, c):
     result = a*x**2 + b*x**1 + c*x**0
     return result
 
+def fit_CLa_lin(x, a, b):
+
+    # Fitting CL vs Alpha function based on 1st order polynomial
+    result = a*x**1 + b
+    return result
+
 def export_csv(EAS, CD, CL):
     # inputs are all numpy arrays of equal size
     return None

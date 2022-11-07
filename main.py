@@ -2,83 +2,49 @@ import numpy as np
 import matplotlib.pyplot as plt
 from superwake_recording import RecordingLoader
 
-class flight:
+def get_data(method, file_name):
 
-    def __init__(self, propeller_name, test_types, aircraft_mass, file):
+    if method == "Alton":
+        #  Stating absolute path to data folder 
+        root = "/Users/williamkemp/Records/Repositories/CREATeV_power/data/"
+        #  Creating path to individual file
+        file_path = root + file_name
+
+        #  Selecting processor based on filename
+        if "2022" in file_name:
+            recording = RecordingLoader.load("CREATeV_2022", file_path)
+        elif "2021" in file_name:
+            recording = RecordingLoader.load("CREATeV_2021", file_path)
+        else:
+            print("Error in data name, make sure it has the year somewhere (eg 2021, 2022")
+        
+        #  Resampling data to desired rate
+        df = recording.resample("1s")
+        return df
+    else:
+        x = None
+        #  Use my own data importer
+
+class flight:
+    def __init__(self, propeller, motor, airplane, dataframe):
         
         #  Flight properties
-        self.propeller = propeller_name
-        self.mass = aircraft_mass
-        self.test_types = test_types  #  Tests conducted during flight, or to be analyzed
+        self.propeller = propeller  # Containing propeller performance models 
+        self.motor = motor          # Containing motor performance models
+        self.airplane = airplane    # Containing variables intrinsic to CREATeV
+        self.data = dataframe       # Containing imported BIN file
 
-        #  Test object storage init
-        self.tests = []
 
-        #  Initialized/Loaded flight data
-        self.file_name = file
-        self.dataframe = self.get_data("Alton")
-
-        #  Initializing test objects
-
-        for i in range(self.test_types):
-            self.tests.append(test_obj(self, test_types[i]))
-
-    def get_data(self, method):
-
-        if method == "Alton":
-            #  Stating absolute path to data folder 
-            root = "/Users/williamkemp/Records/Repositories/CREATeV_power/data/"
-            #  Creating path to individual file
-            file_path = root + self.file_name
-
-            #  Selecting processor based on filename
-            if "2022" in self.file_name:
-                recording = RecordingLoader.load("CREATeV_2022", file_path)
-            elif "2021" in self.file_name:
-                recording = RecordingLoader.load("CREATeV_2021", file_path)
-            else:
-                print("Error in data name, make sure it has the year somewhere (eg 2021, 2022")
-            
-            #  Resampling data to desired rate
-            df = recording.resample("1s")
-            return df
-        else:
-            x = None
-            #  Use my own data importer
-
-    def visualize(self):
-        
-        #  Plot for Descending information
-        plt.figure(1)
-        ax1 = plt.subplot(3,1,1)
-        ax1.plot(self.dataframe["Airspeed"])
-        ax1.set_xlabel("Time")
-        ax1.set_ylabel("Airspeed (m/s)")
-
-        ax2 = plt.subplot(3,1,2, sharex=ax1)
-        ax2.plot(self.dataframe["DescendingXK"])
-        ax2.set_xlabel("Time")
-        ax2.set_ylabel("Descent Rate (m/s)")
-
-        ax3 = plt.subplot(3,1,3, sharex=ax1)
-        ax3.plot(self.dataframe["Altitude"])
-        ax3.set_xlabel("Time")
-        ax3.set_ylabel("Altitude (m)")
-
-        #  Plot for Loiter information
-        plt.show()
-
-class test_obj:
-
+class analysis:
     def __init__(self, flight, test_name):
         self.type = test_name
-        self.flight = flight
-        self.init_masks()
+        self.flight = flight                                # Importing flight information
+        self.init_masks()                                   # Initializing static masks
 
-        self.mask = self.select_mask(flight, test_name)
+        self.mask = self.select_mask(flight, test_name)     # Selecting mask based on 
 
     def init_masks(self):
-        
+        #  Initialized manually input masks for data selection
         june15_loiter = np.array([[9000, 9600],
                                   [9600, 10200],
                                   [10200,10900],
@@ -123,33 +89,3 @@ class test_obj:
             "descending_june15_2022.BIN": june15_descending,
             "loiter_june13_2022.BIN": june13_loiter
         }
-
-    def select_mask(self, flight, test_name):
-        
-        key = test_name + '_' + flight
-        return self.masks[key]
-
-#    def main_analysis(self, flight_dataframe):
-#        if self.type == 'loiter':
-#            if self.flight.propeller == '20x8':
-#
-#            elif self.flight.propeller == '185x12':
-#                continue
-#            else:
-
-#class propeller:
-#    # Class containing the aerodynamic information of the propeller
-#    def __init__(self):
-#        self.name = 
-#class esc:
-#    # Class containing the efficiency information of the Electronic speed controller
-#    self.name
-#
-#        elif self.type == 'descending':
-
-        
-
-
-june15_2022 = flight("185x12", ['loiter', 'descending'], 12.7, "june15_2022.BIN")
-june13_2022 = flight("20x8", ['loiter'], 12.7, "june13_2022.BIN")
-august04_2021 = flight("20x8", ['loiter'], 12.6, "august04_2021")

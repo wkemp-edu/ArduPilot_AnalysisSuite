@@ -1,99 +1,73 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Oct 14 17:49:44 2022
+Created on Fri Jun 19 12:55:18 2022
 
 @author: williamkemp
 """
 
-# Purpose: Give a better analysis for August data.  
-# Mistakes to fix:
-    # 1. Bank angle
-    # 3. Better mass estimates
-    # 3. Full index calculations, then average result
-
+import scipy.io
 import numpy as np
 import pandas as pd
+import matplotlib
 from matplotlib import pyplot as plt
-import os
-from scipy.optimize import curve_fit
+from scipy import optimize as op
 
-from propellers import aeronaut20x8
-from motors import U7V2_280KV
-from aircraft import airplane
-
-import data_importer as imp
-import data_exporter as exp
-import fittingtools
+import propellers
+import motors
 import cl_finders
+from aircraft import airplane
+import fittingtools
+
+from superwake_recording import RecordingLoader
+import matplotlib.pyplot as plt
+
+import data_exporter as exp
 
 # Vehicle parameters
-prop = aeronaut20x8() # Using aeronaut 20x8 for this flight
-motor = U7V2_280KV()  # Using U7 V2 motor
+prop = propellers.aeronaut20x8() # Using aeronaut 20x8 for this flight
+motor = motors.U7V2_280KV()  # Using U7 V2 motor
 
-mass = 12.61797 # Estimated with virtual bolt included
+mass = 12.7 # Estimated with virtual bolt included
 span = 6.28
 chord = 0.395
 createv = airplane(mass, chord, span)
 
 P_systems = 4 # Amount of power consumed by everything except the ESC & motor
 
-# Importing ground and flight data
-gnd_data = imp.import_gndstation('data/04-08/LOGGER05')
-fmt = imp.import_flt('data/04-08/FMT')
+# Importing data
+file = "/Users/williamkemp/Records/Repositories/CREATeV_power/data/june13_2022.BIN"
+recording = RecordingLoader.load("CREATeV_2022", file)
+df = recording.resample("1s")
 
-mask = np.array([[1.570e5,1.665e5],
-                [1.668e5,1.782e5],
-                [1.794e5,1.904e5],
-                [1.916e5,2.075e5],
-                [2.087e5,2.166e5],
-                [2.168e5,2.369e5],
-                [2.381e5,2.486e5],
-                [2.490e5,2.607e5],
-                [2.619e5,2.671e5],
-                [2.679e5,2.784e5],
-                [2.800e5,3.444e5]])
 
-# Using time from Kalman Filter Output
-# Interpolating all other times to the KF
 
-time = fmt.NKF1.TimeS
-time = time - time[0]
+### Mask Initialization ###
 
-fmt.CTUN.Aspd = np.interp(time, fmt.CTUN.TimeS, fmt.CTUN.Aspd) # True airspeed (Smoothed from CTUN output)
-fmt.ATT.Pitch = np.interp(time, fmt.ATT.TimeS, fmt.ATT.Pitch)
-fmt.ATT.Roll = np.interp(time, fmt.ATT.TimeS, fmt.ATT.Roll)
-fmt.AOA.AOA = np.interp(time, fmt.AOA.TimeS, fmt.AOA.AOA)
-fmt.POS.Alt = np.interp(time, fmt.POS.TimeS, fmt.POS.Alt)
-fmt.CESC.RPM = np.interp(time, fmt.CESC.TimeS, fmt.CESC.RPM)
-fmt.CESC.Voltage = np.interp(time, fmt.CESC.TimeS, fmt.CESC.Voltage)
-fmt.CESC.Curr = np.interp(time, fmt.CESC.TimeS, fmt.CESC.Curr)
-
-# Pressures that are going to be used to find density
-Press0 = np.interp(time, fmt.BARO.TimeS, fmt.BARO.Press)
-Press1 = np.interp(time, fmt.BAR2.TimeS, fmt.BAR2.Press)
-Press = np.mean(np.array([Press0, Press1]), 0) # Pressure measurements averaged
-
-# Temperatures that are going to be used to find density
-Temp0 = np.interp(time, fmt.ARSP.TimeS, fmt.ARSP.Temp)
-Temp1 = np.interp(time, fmt.ASP2.TimeS, fmt.ASP2.Temp)
-Temp = np.mean(np.array([Temp0, Temp1]), 0)
+mask = np.array([[5750,6340],
+                [6350,6940],
+                [6950,7540],
+                [7550,8140],
+                [8150,8740],
+                [8750,9340],
+                [9350,9940],
+                [9950,10540]])
 
 ############# Main Analysis ###############3
 
 # Attitude 
-phi = np.deg2rad(fmt.ATT.Roll)                      # Bank angle in radians
+phi = np.deg2rad(df["RollAngle"].to_numpy())                      # Bank angle in radians
 
 # Atmospheric adjustments:
-rho = Press * (287 * (Temp+273.15))**-1             # Density found from barometer pressure & airspeed sensor temperatures
-v_eas = fmt.CTUN.Aspd                               # Equivalent SSL airspeed (m/s)
+rho = df["Pressure"].to_numpy() * (287 * (df["Ambient_Temperature"].to_numpy()+273.15))**-1             # Density found from barometer pressure & airspeed sensor temperatures
+v_eas = df["Airspeed_Sensor0"].to_numpy()                               # Equivalent SSL airspeed (m/s)
 v_tas = v_eas * np.sqrt(1.225) * np.sqrt(rho)**-1   # the true airspeed
 q = 0.5 * rho * v_tas**2                            # Dynamic pressure 
 
 # Propulsion characterization
-n = fmt.CESC.RPM / 60                               # Revolutions per second
-i_esc = fmt.CESC.Curr
-v_esc = fmt.CESC.Voltage
+n = df["MotorRPM"].to_numpy() / 60                               # Revolutions per second
+i_esc = df["EscCurrent"]
+v_esc = df["EscVoltage"]
 
 # Estimated propulsive power
 P_eta = cl_finders.eta_steady(prop, motor, v_tas, n, i_esc, v_esc)
@@ -106,9 +80,7 @@ Cd_ct = cl_finders.preq2cd(createv, v_tas, q, P_ct)
 # Getting lift coefficient
 CL = cl_finders.cl_banked(createv, q, phi)
 
-
 # Plot with static masking
-
 plt.figure(figsize=(10,5))
 plt.title("Manual Masking")
 
@@ -133,14 +105,14 @@ plt.ylabel("Propulsive Power (W)")
 plt.legend()
 plt.show()
 
-CDct_ave = np.zeros(11)
-CDeta_ave = np.zeros(11)
-CL_ave = np.zeros(11)
-EAS_ave = np.zeros(11)
+CDct_ave = np.zeros(len(mask))
+CDeta_ave = np.zeros(len(mask))
+CL_ave = np.zeros(len(mask))
+EAS_ave = np.zeros(len(mask))
 
-CDct_std = np.zeros(11)
-CDeta_std = np.zeros(11)
-CL_std = np.zeros(11)
+CDct_std = np.zeros(len(mask))
+CDeta_std = np.zeros(len(mask))
+CL_std = np.zeros(len(mask))
 
 for i in range(len(mask)):
     print(i)
@@ -183,6 +155,3 @@ plt.ylabel("Lift Coefficient")
 plt.legend()
 plt.grid(True)
 plt.show()
-
-# Dynamic Masking
-

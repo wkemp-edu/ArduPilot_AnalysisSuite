@@ -37,3 +37,9 @@ class U7V2_280KV:
         
         efficiency = (1 - (i0/current)) * (Kv/Kq) * (1 + tau*omega + current*R*Kv*omega**-1)**-1;
         return efficiency
+
+    def motor_current(self, torque):
+        # Finding the current through ESC from the torque: based on fit of WT data
+        Q = torque
+        i = 17.98 * Q**2 + 8.493 * Q**1 + 0.363
+        return i
