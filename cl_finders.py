@@ -18,6 +18,16 @@ def cl_banked(aircraft, q, phi):
     CL = aircraft.weight * (np.cos(phi) * q * aircraft.area)**-1
     return CL
 
+def cl_usbanked(aircraft, q, phi, W_dot):
+
+    # Find CL estimate from:
+        # 1. Aircraft weight (m*g)
+        # 2. Bank angle
+        # 3. Dynamic pressure
+        # 4. Acceleration of CM relative to Earth, taken in the body frame, expressed in frd
+
+    CL = (aircraft.weight / np.cos(phi)) - (aircraft.mass * W_dot)
+
 # def cl_accelerated(aircraft, acc_x, acc_y, acc_z, p, q, r, phi, theta, psi, aoa):
     
 #     # Find CL estimate from:
@@ -29,7 +39,7 @@ def cl_banked(aircraft, q, phi):
             
 #     CL = a_wind_z * aircraft.mass
 
-def eta_steady(propeller, motor, v_tas, n, current, voltage):
+def eta_steady(propeller, motor, v_tas, n, current, voltage, oldfit=False):
     # Estimated propulsive power
     J_tas = v_tas * (n * propeller.diameter)**-1             # Advance ratio at TAS
     P_motor = current * voltage                              # Electrical power to ESC
@@ -42,15 +52,14 @@ def eta_steady(propeller, motor, v_tas, n, current, voltage):
     
     return P_eta
 
-    
-def thrust_steady(propeller, rho, v_tas, n):
+def thrust_steady(propeller, rho, v_tas, n, oldfit=False):
     J_tas = v_tas * (n * propeller.diameter)**-1             # Advance ratio at TAS
     ct = propeller.thrust_coeff(J_tas)                  # Thrust coefficients
     T = ct * propeller.diameter**4 * rho * n**2              # Getting Thrust from thrust coefficient
     P_ct = v_tas * T                                    # Propulsive power estimate from thrust coefficient
     return P_ct
 
-def desc2preq(aircraft, propeller, rho, v, n, q, Vd):
+def desc2preq(aircraft, propeller, rho, v, n, q, Vd, oldfit=False):
     # Inputs:
         # Aircraft
         # v in true airspeed
@@ -62,7 +71,7 @@ def desc2preq(aircraft, propeller, rho, v, n, q, Vd):
     D_prop = np.abs(propeller.freewheel_tcoeff()) * rho * n**2 * propeller.diameter**4
     P_propdrag = D_prop * v
 
-    print(P_propdrag)
+    print("Propeller Drag" + str(P_propdrag))
     P_req = P_req - P_propdrag  # Removing the drag from the freewheeling propeller
     return P_req
     

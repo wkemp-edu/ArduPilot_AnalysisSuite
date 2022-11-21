@@ -73,15 +73,21 @@ class aeronaut185x12:
         eff = J * (self.thrust_coeff(J)/self.power_coeff(J))
         return eff
     
-    def thrust_coeff(self, J):
+    def thrust_coeff(self, J, oldfit=False):
     # Overall thrust coefficient for a 18.5x12 system with a polynomial fit  
-        #ct = -0.02627*J**3 - 0.1681*J**2 + 0.02741*J**1 + 0.08628
-        CT = 0.01649*J**3 - 0.224*J**2 + 0.04329*J + 0.08563
+        #ct = -0.02627*J**3 - 0.1681*J**2 + 0.02741*J**1 + 0.08628 (original)
+        if oldfit:
+            CT = 0.01649*J**3 - 0.224*J**2 + 0.04329*J + 0.08563 #(10-18 Fit)
+        else:
+            CT = -1.636*J**5 + 3.933*J**4 - 3.246*J**3 + 0.8995*J**2 - 0.09467*J**1 + 0.08651 # (11-18 Fit, Freewheel data)
         return CT
     
-    def power_coeff(self, J):
+    def power_coeff(self, J,  oldfit=False):
         # Overall thrust coefficient for a 20x8 system with a polynomial fit  
-        CP = -0.2103*J**3 + 0.1318*J**2 - 0.033076*J + 0.04726
+        if oldfit:
+            CP = -0.2103*J**3 + 0.1318*J**2 - 0.033076*J + 0.04726 #(10-18 Fit)
+        else:
+            CP = 0.2741*J**4 - 0.5853*J**3 + 0.3012*J**2 - 0.05987*J**1 + 0.04802 # (11-18 Fit, Freewheel data)
         return CP
 
     def freewheel_tcoeff(self):
@@ -94,11 +100,11 @@ class aeronaut185x12:
         cp = self.power_coeff(J_old)
         while cp > error_dem:
             slope = (self.power_coeff(J_old + (0.5*dJ)) - self.power_coeff(J_old - (0.5*dJ))) / dJ
-            print(slope)
+            #print("Slope" + str(slope))
             J_new = J_old - ( self.power_coeff(J_old) / slope)
             cp = self.power_coeff(J_new)
             J_old = J_new
-        print(self.power_coeff(J_new))
+        print("Freewheel thrust coefficient: ", str(self.thrust_coeff(J_new)))
 
         return self.thrust_coeff(J_old)
     
