@@ -7,6 +7,7 @@ Created on Wed Sep 28 03:11:21 2022
 """
 
 import numpy as np
+from matplotlib import pyplot as plt
 
 # Updated on October 20th 2022
 # Based on curve fits in Createv/Analysis/ file system
@@ -95,16 +96,27 @@ class aeronaut185x12:
         
         # Newton Ralphsen Method
         J_old = 0.5        # Initial guess of J
-        dJ = 0.01
-        error_dem = 1e-5
+        dJ = 0.001
+        error_dem = 1e-9
         cp = self.power_coeff(J_old)
-        while cp > error_dem:
+
+        plt.figure()
+        Jv = np.linspace(0.1, 1.4, 200)
+        plt.plot(Jv, self.power_coeff(Jv))
+
+        while np.abs(cp) > error_dem:
             slope = (self.power_coeff(J_old + (0.5*dJ)) - self.power_coeff(J_old - (0.5*dJ))) / dJ
-            #print("Slope" + str(slope))
-            J_new = J_old - ( self.power_coeff(J_old) / slope)
+            J_new = J_old - 0.5*( self.power_coeff(J_old) / slope)
             cp = self.power_coeff(J_new)
             J_old = J_new
-        print("Freewheel thrust coefficient: ", str(self.thrust_coeff(J_new)))
+            plt.scatter(J_new, self.power_coeff(J_new), marker='o')
+        print("Freewheel thrust coefficient: ", str(self.thrust_coeff(J_new)), "\n Advance Ratio: ", str(J_new), "\n CP Freewheel: ", str(cp))
+        
+        plt.scatter(J_new, self.power_coeff(J_new), marker='^')
+        plt.xlabel("Advance Ratio")
+        plt.ylabel("Coefficient of Power")
+        plt.title("Convergence for Freewheeling Drag Estimation")
+        plt.show()
 
         return self.thrust_coeff(J_old)
     
@@ -118,7 +130,7 @@ class aeronaut185x12:
 
         error_dem = 1e-5
         T_act = self.thrust_coeff(V_tas / (n_old * self.diameter)) * rho * n_old**2 * self.diameter**4
-        error = thrust - T_act
+        error = np.abs(thrust - T_act)
         
         while error > error_dem:
             f_old = (self.thrust_coeff(V_tas / ((n_old) * self.diameter)) * rho * (n_old)**2 * self.diameter**4)
@@ -126,7 +138,7 @@ class aeronaut185x12:
                 - (self.thrust_coeff(V_tas / ((n_old-0.5*dn) * self.diameter)) * rho * (n_old-0.5*dn)**2 * self.diameter**4)) * dn**-1
             n_new = n_old - (f_old/slope)
             T_act = self.thrust_coeff(V_tas / (n_new * self.diameter)) * rho * n_new**2 * self.diameter**4
-            error = thrust - T_act
+            error = np.abs(thrust - T_act)
             n_old = n_new
             print(n_new)
         return n_new

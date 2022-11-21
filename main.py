@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from superwake_recording import RecordingLoader
 
-def get_data(method, file_name):
+def get_data(method, file_name, rate):
 
     if method == "Alton":
         #  Stating absolute path to data folder 
@@ -19,7 +19,7 @@ def get_data(method, file_name):
             print("Error in data name, make sure it has the year somewhere (eg 2021, 2022")
         
         #  Resampling data to desired rate
-        df = recording.resample("1s")
+        df = recording.resample(rate)
         return df
     else:
         x = None

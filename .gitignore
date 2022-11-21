@@ -1,3 +1,5 @@
 *.BIN
 *.mat
 *.CSV
+*.pkl
+*.png
