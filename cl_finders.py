@@ -59,6 +59,23 @@ def thrust_steady(propeller, rho, v_tas, n, oldfit=False):
     P_ct = v_tas * T                                    # Propulsive power estimate from thrust coefficient
     return P_ct
 
+def cruise_highorder(aircraft, propeller, rho, v_tas, n, Vd, theta, U_dot):
+    # Produce power required, with acceleration and potential terms
+    # Inputs:
+        # 1. aircraft
+        # 2. v_tas in true airspeed
+        # 4. Theta pitch angle
+        # 5. Acceleration in X body frame U dot
+    # Outputs:
+        # 1. Power required (watts)
+    J_tas = v_tas * (n * propeller.diameter)**-1
+    ct = propeller.thrust_coeff(J_tas)
+    T = ct * rho * n**2 * propeller.diameter**4
+
+    D = T + (aircraft.weight * Vd) - (aircraft.mass * U_dot)
+    P_req = D * v_tas
+    return P_req
+
 def desc2preq(aircraft, propeller, rho, v, n, q, Vd, oldfit=False):
     # Inputs:
         # Aircraft
@@ -74,7 +91,21 @@ def desc2preq(aircraft, propeller, rho, v, n, q, Vd, oldfit=False):
     print("Propeller Drag" + str(P_propdrag))
     P_req = P_req - P_propdrag  # Removing the drag from the freewheeling propeller
     return P_req
-    
+
+def descU2preq(aircraft, propeller, rho, v, n, q, Vd, theta, U_dot):
+    # Inputs:
+        # Aircraft
+        # v in true airspeed
+        # q dynamic pressure
+        # Vd descent rate (true)
+    D = (aircraft.weight * Vd) - (aircraft.mass * U_dot)
+    P_req = D * v
+    D_prop = np.abs(propeller.freewheel_tcoeff()) * rho * n**2 * propeller.diameter**4
+    P_propdrag = D_prop * v
+
+    print("Propeller Drag" + str(P_propdrag))
+    P_req = P_req - P_propdrag  # Removing the drag from the freewheeling propeller
+    return P_req
     
 def preq2cd(aircraft, v, q, p_required):
     # Inputs:
@@ -89,9 +120,12 @@ def preq2cd(aircraft, v, q, p_required):
 def polarcurve_fit(CL_sq, cd0, k):
     # of the form CD = CD0 + kCL^2
     return cd0 + k * CL_sq
-  
 
-def cd2polar(aircraft, CD, CL):
+def polarcurve_fit_ho(C_L, cd0, k, C_Lmind):
+    # Of the form CD = CD0 + k(C_L - C_Lmind)^2
+    return cd0 + k * (C_L - C_Lmind)**2
+  
+def cd2polar(aircraft, CD, CL, highorder=False):
     # Turning individual data points of CD and CL into a drag polar
     # Inputs: 
         # 1. Aircraft parameters
@@ -101,11 +135,19 @@ def cd2polar(aircraft, CD, CL):
         # 1. Oswald efficiency
         # 2. Zero lift drag coefficient
     
-    popt, pcov = curve_fit(polarcurve_fit, CL**2, CD)
-    CD0 = popt[0]
-    K = popt[1]
-    e = (np.pi * aircraft.AR * K)**-1
-    return np.array([CD0, e])
+    if highorder:
+        popt, pcov = curve_fit(polarcurve_fit_ho, CL, CD)
+        CD0 = popt[0]
+        K = popt[1]
+        CL_mind = popt[2]
+        e = (np.pi * aircraft.AR * K)**-1
+        return np.array([CD0, e, CL_mind])
+    else:
+        popt, pcov = curve_fit(polarcurve_fit, CL**2, CD)
+        CD0 = popt[0]
+        K = popt[1]
+        e = (np.pi * aircraft.AR * K)**-1
+        return np.array([CD0, e])
 
 def polar2preqew(aircraft, polar, airspeed_range):
     # Turning the fitted drag polar parameters into a power required for steady level flight @ standard SL
@@ -124,6 +166,8 @@ def polar2preqew(aircraft, polar, airspeed_range):
     
     if len(polar) == 2:
         Pew_req = ((0.5 * rho_ssl * EAS_SL**3) * aircraft.area * polar[0]) + (2 * W_ew**2 * (np.pi * rho_ssl * EAS_SL * aircraft.span**2 * polar[1])**-1)
+    elif len(polar) == 3:
+        Pew_req = ((0.5 * rho_ssl * EAS_SL**3) * aircraft.area * polar[0]) + ( (0.5*rho_ssl*EAS_SL**3*aircraft.area) * ((np.pi*aircraft.AR*polar[1])**-1) * ((2*W_ew*(rho_ssl*EAS_SL**2*aircraft.area)**-1) - polar[2])**2)
     return Pew_req, EAS_SL
 
 def angleModel(CL, aoa, model):
@@ -160,10 +204,21 @@ def basicModel(aircraft, polar, CL_alpha, airspeed_range):
 
     V_eas_ssl = np.linspace(airspeed_range[0], airspeed_range[1], 500)
     CL = (aircraft.weight) / (0.5 * rho_ssl * V_eas_ssl**2 * aircraft.area)
-    CD = polar[0] + ((np.pi*aircraft.AR*polar[1])**-1 * CL**2)
+    
+    if len(polar) == 3:
+        CD = polar[0] + ((np.pi*aircraft.AR*polar[1])**-1 * (CL - polar[2])**2)
+    elif len(polar) == 2:
+        CD = polar[0] + ((np.pi*aircraft.AR*polar[1])**-1 * CL**2)
+
     if len(CL_alpha) == 3:
         AoA = CL_alpha[0]*CL**2 + CL_alpha[1]*CL + CL_alpha[2]
     elif len(CL_alpha) == 2:
         AoA = CL_alpha[0]*CL**1 + CL_alpha[1]
     
     return V_eas_ssl, CL, CD, AoA
+
+def mask_fromTime(df, start_time, end_time):
+    # Getting boolean mask from start and end times, using full date picked out
+
+    mask = (df.index > start_time) & (df.index < end_time)
+    return mask

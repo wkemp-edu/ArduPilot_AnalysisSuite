@@ -6,7 +6,7 @@ def get_data(method, file_name, rate):
 
     if method == "Alton":
         #  Stating absolute path to data folder 
-        root = "/Users/williamkemp/Records/Repositories/CREATeV_power/data/"
+        root = "/Users/williamkemp/Records/Repositories/CREATeV_AnalysisSuite/data/"
         #  Creating path to individual file
         file_path = root + file_name
 
