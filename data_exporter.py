@@ -12,8 +12,10 @@ import numpy as np
 import fittingtools
 from scipy import optimize as op
 from pathlib import Path
+import csv
+import pickle
 
-def export_polar(name, P_req_ssl, V_ssl, mass, AR, S, phi, alpha=False):
+def export_polar_religated(name, P_req_ssl, V_ssl, mass, AR, S, phi, alpha=False):
     
     # Inputs:
         # 0. name := name of the csv file exported!
@@ -73,3 +75,28 @@ def export_polar(name, P_req_ssl, V_ssl, mass, AR, S, phi, alpha=False):
     df.to_csv(resultspath, index=True)
     
     return df
+
+def export_polar(name, polar, mass, S, format):
+
+    # Exporting aircraft performance model:
+    # 1. Name of the model (include where data was taken from, which method used)
+    # 2. Polar data; taking the form of a 2 or 3 slot vector depending on the fit
+    #   a. Simple: C_D = CD0 + k*C_L^2
+    #   b. Advanced: C_D = CD0 + k*(C_L - C_L_dmin)^2
+    # 3. Aircraft Mass --> Should be the mass for the flight
+    # 4. Aircraft Wing Area 
+
+    storage = {'Polar':polar, 'AircraftMass':mass, 'WingArea': S}
+    storage = pd.DataFrame(storage)
+    
+    if format =='pkl':
+        storage.to_pickle(name+'.pkl')
+        return
+    elif format =='csv':
+        w = csv.writer(open(name+".csv", "w"))
+        for key, val in dict.items():
+            w.writerow([key, val])
+    else:
+        print("Check your format input, should be 'pkl' or 'csv'")
+
+    return None
