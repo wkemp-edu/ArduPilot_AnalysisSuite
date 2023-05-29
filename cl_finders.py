@@ -6,6 +6,20 @@ import fittingtools
 
 rho_ssl = 1.225
 
+# def masker_lua(throttle, current, dataframe):
+#     # Basic mask for Lua accelerations
+#     # Checking for throttle to zero, and current above 5A
+
+#     bin_mask = (dataframe['ThrottleOut'] == 1900) & (dataframe['MainBatteryCurrent'] >= 5)
+#     jump = np.diff(bin_mask)
+#     start_mask = jump > 0
+#     end_mask = jump < 0
+#     start_indices = np.where(start_mask)
+#     end_indices = np.where(end_mask)
+
+#     start_times = dataframe.index(start_indices)
+#     end_times = dataframe.index(end_indices)
+
 def cl_banked(aircraft, q, phi):
     
     # Find CL estimate from:
@@ -26,7 +40,8 @@ def cl_usbanked(aircraft, q, phi, W_dot):
         # 3. Dynamic pressure
         # 4. Acceleration of CM relative to Earth, taken in the body frame, expressed in frd
 
-    CL = (aircraft.weight / np.cos(phi)) - (aircraft.mass * W_dot)
+    CL = ((aircraft.weight / np.cos(phi)) - (aircraft.mass * W_dot)) * (q * aircraft.area)**-1
+    return CL
 
 # def cl_accelerated(aircraft, acc_x, acc_y, acc_z, p, q, r, phi, theta, psi, aoa):
     

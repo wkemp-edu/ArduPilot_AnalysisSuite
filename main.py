@@ -13,6 +13,8 @@ def get_data(method, file_name, rate):
         #  Selecting processor based on filename
         if "2022" in file_name:
             recording = RecordingLoader.load("CREATeV_2022", file_path)
+        elif "2023" in file_name:
+            recording = RecordingLoader.load("ArduPlane_4_3_3", file_path)
         elif "2021" in file_name:
             recording = RecordingLoader.load("CREATeV_2021", file_path)
         else:

@@ -184,3 +184,84 @@ class aeronaut185x12:
 
     def diameter(self):
         return self.diameter
+    
+class aeronaut11x7_estimatedBEN:
+    
+    def __init__(self):
+        self.diameter = 0.288 # meters (This is slightly inconsistent with the diameter used by Ben 279.4 mm)
+
+    def efficiency(self, J):
+    # Overall efficiency for a 18.5x12 system, with a polynomial fit, find details in onenote
+        eff = J * (self.thrust_coeff(J)/self.power_coeff(J))
+        return eff
+    
+    def thrust_coeff(self, J, oldfit=False):
+        CT = 0.10244 - 0.0023939*J - 0.22146*J**2 + 0.047003*J**3 + 0.038813*J**4
+        return CT
+    
+    def power_coeff(self, J,  oldfit=False):
+        CP = 0.040615 - 0.01124*J + 0.17948*J**2 - 0.47695*J**3 + 0.26034*J**4
+        return CP
+
+    def freewheel_tcoeff(self):
+        # Finding the drag of a freewheeling propeller by CP = 0, getting J and then finding CT(J)
+        
+        # Newton Ralphsen Method
+        J_old = 0.5        # Initial guess of J
+        dJ = 0.001
+        error_dem = 1e-9
+        cp = self.power_coeff(J_old)
+
+        plt.figure()
+        Jv = np.linspace(0.1, 1.4, 200)
+        plt.plot(Jv, self.power_coeff(Jv))
+
+        while np.abs(cp) > error_dem:
+            slope = (self.power_coeff(J_old + (0.5*dJ)) - self.power_coeff(J_old - (0.5*dJ))) / dJ
+            J_new = J_old - 0.5*( self.power_coeff(J_old) / slope)
+            cp = self.power_coeff(J_new)
+            J_old = J_new
+            plt.scatter(J_new, self.power_coeff(J_new), marker='o')
+        print("Freewheel thrust coefficient: ", str(self.thrust_coeff(J_new)), "\n Advance Ratio: ", str(J_new), "\n CP Freewheel: ", str(cp))
+        
+        plt.scatter(J_new, self.power_coeff(J_new), marker='^')
+        plt.xlabel("Advance Ratio")
+        plt.ylabel("Coefficient of Power")
+        plt.title("Convergence for Freewheeling Drag Estimation")
+        plt.show()
+
+        return self.thrust_coeff(J_old)
+    
+    def getRPM(self, thrust, rho, V_tas):
+        # Finding the RPM required for certain thrust @ true airspeed
+
+        # Newton Ralphsen Method
+        n_old = 40          # Initial guess of rev/s
+        J_old = V_tas / (n_old * self.diameter)
+        dn = 0.2            # Incremental change to rev/s
+
+        error_dem = 1e-5
+        T_act = self.thrust_coeff(V_tas / (n_old * self.diameter)) * rho * n_old**2 * self.diameter**4
+        error = np.abs(thrust - T_act)
+        
+        while error > error_dem:
+            f_old = (self.thrust_coeff(V_tas / ((n_old) * self.diameter)) * rho * (n_old)**2 * self.diameter**4)
+            slope = ((self.thrust_coeff(V_tas / ((n_old+0.5*dn) * self.diameter)) * rho * (n_old+0.5*dn)**2 * self.diameter**4) \
+                - (self.thrust_coeff(V_tas / ((n_old-0.5*dn) * self.diameter)) * rho * (n_old-0.5*dn)**2 * self.diameter**4)) * dn**-1
+            n_new = n_old - (f_old/slope)
+            T_act = self.thrust_coeff(V_tas / (n_new * self.diameter)) * rho * n_new**2 * self.diameter**4
+            error = np.abs(thrust - T_act)
+            n_old = n_new
+            print(n_new)
+        return n_new
+
+    def getTorque(self, rho, n, V_tas):
+        # Finding torque from propeller RPM and Airspeed
+
+        J = V_tas / (n * self.diameter)
+        CQ = self.power_coeff(J) * (2 * np.pi)**-1
+        Q = CQ * rho * n**2 * self.diameter**5
+        return Q
+
+    def diameter(self):
+        return self.diameter
