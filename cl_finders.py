@@ -151,7 +151,7 @@ def cd2polar(aircraft, CD, CL, highorder=False):
         # 2. Zero lift drag coefficient
     
     if highorder:
-        popt, pcov = curve_fit(polarcurve_fit_ho, CL, CD)
+        popt, pcov = curve_fit(polarcurve_fit_ho, CL, CD, maxfev=5000)
         CD0 = popt[0]
         K = popt[1]
         CL_mind = popt[2]
@@ -163,6 +163,19 @@ def cd2polar(aircraft, CD, CL, highorder=False):
         K = popt[1]
         e = (np.pi * aircraft.AR * K)**-1
         return np.array([CD0, e])
+    
+def plotfittedpolar(aircraft, polar, CL_range):
+
+    # Plotting the fitted drag polar over the desired lift range
+
+    CL_vector = np.linspace(CL_range[0], CL_range[1], 200)
+
+    if len(polar) == 2:
+        CD_vector = polar[0] + (polar[1]*np.pi*aircraft.AR)**-1 * CL_vector**2
+    elif len(polar) == 3:
+        CD_vector = polar[0] + (polar[1]*np.pi*aircraft.AR)**-1 * (CL_vector - polar[2])**2
+
+    return CL_vector, CD_vector
 
 def polar2preqew(aircraft, polar, airspeed_range):
     # Turning the fitted drag polar parameters into a power required for steady level flight @ standard SL

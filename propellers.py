@@ -65,12 +65,12 @@ class aeronaut20x8:
         # Finding the RPM required for certain thrust @ true airspeed
 
         # Newton Ralphsen Method
-        n_old = 40          # Initial guess of rev/s
+        n_old = 100          # Initial guess of rev/s
         J_old = V_tas / (n_old * self.diameter)
         dn = 0.2            # Incremental change to rev/s
 
         error_dem = 1e-5
-        T_act = self.thrust_coeff(V_tas / (n_old * self.diameter)) * rho * n_old**2 * self.diameter**4
+        T_act = self.thrust_coeff(J_old) * rho * n_old**2 * self.diameter**4
         error = np.abs(thrust - T_act)
         
         while error > error_dem:

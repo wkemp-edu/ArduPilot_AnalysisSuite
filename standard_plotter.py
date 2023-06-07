@@ -99,3 +99,9 @@ def tecs_plot(data):
     # 4. Flags
 
     plt.show()
+
+def subplotter(grid=True):
+
+
+
+    plt.show()
