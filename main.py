@@ -4,12 +4,12 @@ from superwake_recording import RecordingLoader
 
 def get_data(method, file_name, rate):
 
-    if method == "Alton":
-        #  Stating absolute path to data folder 
-        root = "/Users/williamkemp/Records/Repositories/CREATeV_AnalysisSuite/data/"
-        #  Creating path to individual file
-        file_path = root + file_name
+    #  Stating absolute path to data folder 
+    root = "../data/"
+    #  Creating path to individual file
+    file_path = root + file_name
 
+    if method == "Alton":
         #  Selecting processor based on filename
         if "2022" in file_name:
             recording = RecordingLoader.load("CREATeV_2022", file_path)
@@ -19,13 +19,18 @@ def get_data(method, file_name, rate):
             recording = RecordingLoader.load("CREATeV_2021", file_path)
         else:
             print("Error in data name, make sure it has the year somewhere (eg 2021, 2022")
-        
-        #  Resampling data to desired rate
-        df = recording.resample(rate)
-        return df
+    elif method == "CREATeV_2022":
+        recording = RecordingLoader.load(method, file_path)
+    elif method == "ArduPlane_4_3_3":
+        recording = RecordingLoader.load(method, file_path)
+    elif method == "CREATeV_2021":
+        recording = RecordingLoader.load(method, file_path)
     else:
-        x = None
-        #  Use my own data importer
+        print("Error importing data")
+        return
+    #  Resampling data to desired rate
+    df = recording.resample(rate)
+    return df
 
 class flight:
     def __init__(self, propeller, motor, airplane, dataframe):
