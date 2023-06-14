@@ -495,7 +495,7 @@ xtick.minor.visible: True   # visibility of minor ticks on x-axis
 #ytick.labelcolor:    inherit # color of the tick labels or inherit from ytick.color
 #ytick.labelsize:     medium  # font size of the tick labels
 #ytick.direction:     out     # direction: {in, out, inout}
-#ytick.minor.visible: False   # visibility of minor ticks on y-axis
+ytick.minor.visible: True   # visibility of minor ticks on y-axis
 #ytick.major.left:    True    # draw y axis left major ticks
 #ytick.major.right:   True    # draw y axis right major ticks
 #ytick.minor.left:    True    # draw y axis left minor ticks
@@ -567,7 +567,7 @@ figure.dpi:         100       # figure dots per inch
                                # expressed as a fraction of the average axis height
 
 ## Figure layout
-#figure.autolayout: False  # When True, automatically adjust subplot
+figure.autolayout: True  # When True, automatically adjust subplot
                            # parameters to make the plot fit the figure
                            # using `tight_layout`
 #figure.constrained_layout.use: False  # When True, automatically make plot

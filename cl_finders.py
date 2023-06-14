@@ -3,6 +3,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 import fittingtools
+import pandas as pd
 
 rho_ssl = 1.225
 
@@ -255,3 +256,18 @@ def mask_fromTime(df, start_time, end_time):
 
     mask = (df.index > start_time) & (df.index < end_time)
     return mask
+
+def get_mask(df, start, end, year, month, day):
+    # Getting boolean mask from start and end times
+    start_time = get_datetime(start, year, month, day)
+    end_time = get_datetime(end, year, month, day)
+    mask = (df.index > start_time) & (df.index < end_time)
+    return mask
+
+def get_datetime(hour_string, year, month, day):
+    # Results completed datetime from hour string, and date
+    split_nums = hour_string.split(':')
+    hours = int(split_nums[0])
+    minutes = int(split_nums[1])
+    seconds = int(split_nums[2])
+    return pd.Timestamp(year=year, month=month, day=day, hour=hours, minute=minutes, second=seconds)

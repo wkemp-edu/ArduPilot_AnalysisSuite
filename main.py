@@ -1,9 +1,27 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+import pickle
 from superwake_recording import RecordingLoader
 
-def get_data(method, file_name, rate):
+def save_figure(figure, plot_name, path, overwrite=False):
+    # Saves figure to pdf and into pkl for opening later
+    if overwrite:
+        plt.savefig(path+plot_name+'.pdf', bbox_inches='tight')
+        pickle.dump(figure, open(path+plot_name+'.pkl', 'wb'))
+    elif os.path.exists(path+plot_name+'.pdf'):
+        print("Plot already exists")
+    else:
+        plt.savefig(path+plot_name+'.pdf', bbox_inches='tight')
+        pickle.dump(figure, open(path+plot_name+'.pkl', 'wb'))
 
+def open_figure(plot_name, path):
+    figure = pickle.load(open(path+plot_name+'.pkl','rb'))
+    figure.suptitle(plot_name)
+    return figure
+
+def get_data(method, file_name, rate):
+    
     #  Stating absolute path to data folder 
     root = "../data/"
     #  Creating path to individual file
