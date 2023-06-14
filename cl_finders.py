@@ -151,14 +151,14 @@ def cd2polar(aircraft, CD, CL, highorder=False):
         # 2. Zero lift drag coefficient
     
     if highorder:
-        popt, pcov = curve_fit(polarcurve_fit_ho, CL, CD, maxfev=5000)
+        popt, pcov = curve_fit(polarcurve_fit_ho, CL, CD, p0=[0, 0.01, 0.5], maxfev=50000, method='dogbox', bounds=((-np.inf, -np.inf, -np.inf), (np.inf, np.inf, np.inf)))
         CD0 = popt[0]
         K = popt[1]
         CL_mind = popt[2]
         e = (np.pi * aircraft.AR * K)**-1
         return np.array([CD0, e, CL_mind])
     else:
-        popt, pcov = curve_fit(polarcurve_fit, CL**2, CD)
+        popt, pcov = curve_fit(polarcurve_fit, CL**2, CD, p0=[0, 0.01], maxfev=50000, method='dogbox')
         CD0 = popt[0]
         K = popt[1]
         e = (np.pi * aircraft.AR * K)**-1
@@ -177,7 +177,7 @@ def plotfittedpolar(aircraft, polar, CL_range):
 
     return CL_vector, CD_vector
 
-def polar2preqew(aircraft, polar, airspeed_range):
+def polar2preqew(aircraft, polar, airspeed_range, createvstandardweight=True):
     # Turning the fitted drag polar parameters into a power required for steady level flight @ standard SL
     # Inputs:
         # 1. Polar:  array of numpy (size determines the polar equation used)
@@ -186,10 +186,15 @@ def polar2preqew(aircraft, polar, airspeed_range):
     # Outputs:
         # 1. Power required (W) @ SL @ standard weight (12.6 kg)
         # 2. Equivalent Airspeed @ Standard sea level
-        
+    
     rho_ssl = 1.225 # Standard density at sea level
-    mass_ew = 12.6 # The standard mass of the aircraft
-    W_ew = 12.6 * 9.807
+
+    if createvstandardweight == True:
+        mass_ew = 12.6 # The standard mass of the aircraft
+        W_ew = 12.6 * 9.807
+    else:
+        W_ew = aircraft.weight
+    
     EAS_SL = np.linspace(airspeed_range[0], airspeed_range[1], 500)
     
     if len(polar) == 2:
