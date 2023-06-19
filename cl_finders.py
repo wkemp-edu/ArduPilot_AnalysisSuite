@@ -152,7 +152,7 @@ def cd2polar(aircraft, CD, CL, highorder=False):
         # 2. Zero lift drag coefficient
     
     if highorder:
-        popt, pcov = curve_fit(polarcurve_fit_ho, CL, CD, p0=[0, 0.01, 0.5], maxfev=50000, method='dogbox', bounds=((-np.inf, -np.inf, -np.inf), (np.inf, np.inf, np.inf)))
+        popt, pcov = curve_fit(polarcurve_fit_ho, CL, CD, p0=[0.02, 0.05, 0.5], maxfev=50000, method='dogbox', bounds=((0, 0, 0), (100.0, 100.0, 100.0)))
         CD0 = popt[0]
         K = popt[1]
         CL_mind = popt[2]
