@@ -37,15 +37,19 @@ def get_data(method, file_name, rate):
             recording = RecordingLoader.load("CREATeV_2021", file_path)
         else:
             print("Error in data name, make sure it has the year somewhere (eg 2021, 2022")
-    elif method == "CREATeV_2022":
-        recording = RecordingLoader.load(method, file_path)
-    elif method == "ArduPlane_4_3_3":
-        recording = RecordingLoader.load(method, file_path)
-    elif method == "CREATeV_2021":
-        recording = RecordingLoader.load(method, file_path)
     else:
-        print("Error importing data")
-        return
+        recording = RecordingLoader.load(method, file_path)
+    # elif method == "CREATeV_2023":
+    #     recording = RecordingLoader.load(method, file_path)
+    # elif method == "CREATeV_2022":
+    #     recording = RecordingLoader.load(method, file_path)
+    # elif method == "ArduPlane_4_3_3":
+    #     recording = RecordingLoader.load(method, file_path)
+    # elif method == "CREATeV_2021":
+    #     recording = RecordingLoader.load(method, file_path)
+    # else:
+    #     print("Error importing data")
+    #    return
     #  Resampling data to desired rate
     df = recording.resample(rate)
     return df
@@ -58,7 +62,6 @@ class flight:
         self.motor = motor          # Containing motor performance models
         self.airplane = airplane    # Containing variables intrinsic to CREATeV
         self.data = dataframe       # Containing imported BIN file
-
 
 class analysis:
     def __init__(self, flight, test_name):

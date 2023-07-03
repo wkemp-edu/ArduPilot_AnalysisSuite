@@ -98,5 +98,4 @@ def export_polar(name, polar, mass, S, format):
             w.writerow([key, val])
     else:
         print("Check your format input, should be 'pkl' or 'csv'")
-
     return None
