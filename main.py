@@ -4,6 +4,7 @@ import os
 import pickle
 from superwake_recording import RecordingLoader
 
+
 def save_figure(figure, plot_name, path, overwrite=False):
     # Saves figure to pdf and into pkl for opening later
     if overwrite:
@@ -16,6 +17,7 @@ def save_figure(figure, plot_name, path, overwrite=False):
         pickle.dump(figure, open(path+plot_name+'.pkl', 'wb'))
 
 def open_figure(plot_name, path):
+    # Opens figure compressed to pkl file
     figure = pickle.load(open(path+plot_name+'.pkl','rb'))
     figure.suptitle(plot_name)
     return figure
@@ -62,6 +64,14 @@ class flight:
         self.motor = motor          # Containing motor performance models
         self.airplane = airplane    # Containing variables intrinsic to CREATeV
         self.data = dataframe       # Containing imported BIN file
+
+class result:
+    def __init__(self, raw_polar, ave_polar, std_polar, ci95_polar, fit_polar, vehicle):
+        self.raw_polar = raw_polar      # DataFrame with CL, CD data points
+        self.std_polar = std_polar      # DataFrame with Standard deviations of CL, CD
+        self.ci95_polar = ci95_polar    # DataFrame with 95% confidence intervals calculated of CL, CD
+        self.fit_polar = fit_polar      # DataFrame with two polar fits, one low order, one high order
+        self.vehicle = vehicle          # Vehicle the data was taken with, should contain a) Mass, b) Wing area, c) Aspect Ratio
 
 class analysis:
     def __init__(self, flight, test_name):
