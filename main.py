@@ -76,7 +76,7 @@ class result:
         self.vehicle = vehicle          # Vehicle the data was taken with, should contain a) Mass, b) Wing area, c) Aspect Ratio
 
 # Work in progress
-def packaging_binresults(cl_total, cl_means, cl_stds, cl_ci95s, cd_total, cd_means, cd_stds, cd_ci95s, aircraft):
+def packaging_binresults(cl_total, cl_means, cl_stds, cl_ci95s, cd_total, cd_means, cd_stds, cd_ci95s, polarfit, aircraft):
 
     # Packaging raw polars
     rawpolar = pd.DataFrame.from_dict({'CD': cd_total, 'CL': cl_total})
@@ -87,8 +87,8 @@ def packaging_binresults(cl_total, cl_means, cl_stds, cl_ci95s, cd_total, cd_mea
     # Packaging 95% CI polars
     ci95polar = pd.DataFrame.from_dict({'CD': cd_ci95s, 'CL': cl_ci95s})
 
-    result = result(rawpolar, avepolar, stdpolar, ci95polar, polarfit, aircraft)
-    return result
+    package = result(rawpolar, avepolar, stdpolar, ci95polar, polarfit, aircraft)
+    return package
 
 class analysis:
     def __init__(self, flight, test_name):
