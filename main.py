@@ -68,6 +68,7 @@ class flight:
 class result:
     def __init__(self, raw_polar, ave_polar, std_polar, ci95_polar, fit_polar, vehicle):
         self.raw_polar = raw_polar      # DataFrame with CL, CD data points
+        self.ave_polar = ave_polar      # DataFrame with CL, CD averaged
         self.std_polar = std_polar      # DataFrame with Standard deviations of CL, CD
         self.ci95_polar = ci95_polar    # DataFrame with 95% confidence intervals calculated of CL, CD
         self.fit_polar = fit_polar      # DataFrame with two polar fits, one low order, one high order

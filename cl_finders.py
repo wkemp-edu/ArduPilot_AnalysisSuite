@@ -271,3 +271,57 @@ def get_datetime(hour_string, year, month, day):
     minutes = int(split_nums[1])
     seconds = int(split_nums[2])
     return pd.Timestamp(year=year, month=month, day=day, hour=hours, minute=minutes, second=seconds)
+
+def collect_segments(variable, mask_startend):
+    total = np.array([])
+    for i in range(len(mask_startend)):
+        total = np.append(total, variable[mask_startend[i,0]:mask_startend[i,1]])
+    return total
+
+def collect_segments_boolean(variable, mask_array, selection=None):
+    total = np.array([])
+    if selection != None:
+        for i in range(selection):
+            total = np.append(total, variable[mask_array[i]])
+    else:
+        for i in range(len(mask_array)):
+            total = np.append(total, variable[mask_array[i]])
+    return total
+
+def collect_bins(bins, lift_coeffs, drag_coeffs):
+    # Inputs:
+    # 1. bins: Numpy array that defines the bounds of the start and ends of each Coefficient of lift bin
+    # 2. lift_coeffs: Numpy array containing all usable lift raw data points (Time indexed)
+    # 3. drag_coeffs: Numpy array containing all usable drag raw data points (Time indexed)
+
+    # Outputs:
+    # 1. means: Numpy array containing the means of all data points that lie within each defined bin
+    # 2. stds: Numpy array containing the standard deviations of all data points that lie within each defined bin
+    # 3. ci95s: Numpy array containing the 95% confident intervals of all data points that lie within each defined bin
+    
+    digitized = np.digitize(lift_coeffs, bins)      # Creating indexed binning array
+
+    # Using indexed binning array to generate means, standard deviations, and confidence intervals
+    cl_means = [lift_coeffs[digitized == i].mean() for i in range(1, len(bins))]
+    cl_stds = [lift_coeffs[digitized == i].std() for i in range(1, len(bins))]
+    cl_ci95s = [ 1.96 * (np.sqrt(len(digitized == i)))**-1 * lift_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
+
+    cd_means = [drag_coeffs[digitized == i].mean() for i in range(1, len(bins))]
+    cd_stds = [drag_coeffs[digitized == i].std() for i in range(1, len(bins))]
+    cd_ci95s = [ 1.96 * (np.sqrt(len(digitized == i)))**-1 * drag_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
+    
+    return [cl_means, cl_stds, cl_ci95s, cd_means, cd_stds, cd_ci95s]
+
+# Work in progress
+def packaging_binresults(cl_means, cl_stds, cl_ci95s, cd_means, cd_stds, cd_ci95s):
+
+    # Packaging raw polars
+    rawpolar = pd.DataFrame.from_dict({'CD': cd_total_eta, 'CL': cl_total_cruise})
+    # Packaging averaged polars
+    avepolar = pd.DataFrame.from_dict({'CD': cd_means_eta, 'CL': cl_means_cruise})
+    # Packaging standard deviation polars
+    stdpolar = pd.DataFrame.from_dict({'CD': cd_stds_eta, 'CL': cl_stds_cruise})
+    # Packaging 95% CI polars
+    ci95polar = pd.DataFrame.from_dict({'CD': cd_ci95_eta, 'CL': cl_ci95_cruise})
+
+    eta_cruise_fullresult = main.result(rawpolar, avepolar, stdpolar, ci95polar, polarfit, aircraft)
