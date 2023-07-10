@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import pickle
@@ -73,6 +74,21 @@ class result:
         self.ci95_polar = ci95_polar    # DataFrame with 95% confidence intervals calculated of CL, CD
         self.fit_polar = fit_polar      # DataFrame with two polar fits, one low order, one high order
         self.vehicle = vehicle          # Vehicle the data was taken with, should contain a) Mass, b) Wing area, c) Aspect Ratio
+
+# Work in progress
+def packaging_binresults(cl_total, cl_means, cl_stds, cl_ci95s, cd_total, cd_means, cd_stds, cd_ci95s, aircraft):
+
+    # Packaging raw polars
+    rawpolar = pd.DataFrame.from_dict({'CD': cd_total, 'CL': cl_total})
+    # Packaging averaged polars
+    avepolar = pd.DataFrame.from_dict({'CD': cd_means, 'CL': cl_means})
+    # Packaging standard deviation polars
+    stdpolar = pd.DataFrame.from_dict({'CD': cd_stds, 'CL': cl_stds})
+    # Packaging 95% CI polars
+    ci95polar = pd.DataFrame.from_dict({'CD': cd_ci95s, 'CL': cl_ci95s})
+
+    result = result(rawpolar, avepolar, stdpolar, ci95polar, polarfit, aircraft)
+    return result
 
 class analysis:
     def __init__(self, flight, test_name):
