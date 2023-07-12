@@ -4,6 +4,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 import fittingtools
 import pandas as pd
+import main
 
 rho_ssl = 1.225
 
@@ -288,7 +289,7 @@ def total_segments_boolean(variable, mask_array, selection=None):
             total = np.append(total, variable[mask_array[i]])
     return total
 
-def collect_bins(bins, lift_coeffs, drag_coeffs):
+def collect_bins(bins, total_lift_coeffs, total_drag_coeffs):
     # Inputs:
     # 1. bins: Numpy array that defines the bounds of the start and ends of each Coefficient of lift bin
     # 2. lift_coeffs: Numpy array containing all usable lift raw data points (Time indexed)
@@ -299,18 +300,41 @@ def collect_bins(bins, lift_coeffs, drag_coeffs):
     # 2. stds: Numpy array containing the standard deviations of all data points that lie within each defined bin
     # 3. ci95s: Numpy array containing the 95% confident intervals of all data points that lie within each defined bin
     
-    digitized = np.digitize(lift_coeffs, bins)      # Creating indexed binning array
+    digitized = np.digitize(total_lift_coeffs, bins)      # Creating indexed binning array
 
     # Using indexed binning array to generate means, standard deviations, and confidence intervals
-    cl_means = [lift_coeffs[digitized == i].mean() for i in range(1, len(bins))]
-    cl_stds = [lift_coeffs[digitized == i].std() for i in range(1, len(bins))]
-    cl_ci95s = [ 1.96 * (np.sqrt(len(digitized == i)))**-1 * lift_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
+    cl_means = [total_lift_coeffs[digitized == i].mean() for i in range(1, len(bins))]
+    cl_stds = [total_lift_coeffs[digitized == i].std() for i in range(1, len(bins))]
+    cl_ci95s = [ 1.96 * (np.sqrt(len(digitized == i)))**-1 * total_lift_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
 
-    cd_means = [drag_coeffs[digitized == i].mean() for i in range(1, len(bins))]
-    cd_stds = [drag_coeffs[digitized == i].std() for i in range(1, len(bins))]
-    cd_ci95s = [ 1.96 * (np.sqrt(len(digitized == i)))**-1 * drag_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
-    
+    cd_means = [total_drag_coeffs[digitized == i].mean() for i in range(1, len(bins))]
+    cd_stds = [total_drag_coeffs[digitized == i].std() for i in range(1, len(bins))]
+    cd_ci95s = [ 1.96 * (np.sqrt(len(digitized == i)))**-1 * total_drag_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
     return [cl_means, cl_stds, cl_ci95s, cd_means, cd_stds, cd_ci95s]
+
+# def collect_bins_result(bins, total_lift_coeffs, total_drag_coeffs):
+#     # Inputs:
+#     # 1. bins: Numpy array that defines the bounds of the start and ends of each Coefficient of lift bin
+#     # 2. lift_coeffs: Numpy array containing all usable lift raw data points (Time indexed)
+#     # 3. drag_coeffs: Numpy array containing all usable drag raw data points (Time indexed)
+
+#     # Outputs:
+#     # 1. means: Numpy array containing the means of all data points that lie within each defined bin
+#     # 2. stds: Numpy array containing the standard deviations of all data points that lie within each defined bin
+#     # 3. ci95s: Numpy array containing the 95% confident intervals of all data points that lie within each defined bin
+    
+#     digitized = np.digitize(total_lift_coeffs, bins)      # Creating indexed binning array
+
+#     # Using indexed binning array to generate means, standard deviations, and confidence intervals
+#     cl_means = [total_lift_coeffs[digitized == i].mean() for i in range(1, len(bins))]
+#     cl_stds = [total_lift_coeffs[digitized == i].std() for i in range(1, len(bins))]
+#     cl_ci95s = [ 1.96 * (np.sqrt(len(digitized == i)))**-1 * total_lift_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
+
+#     cd_means = [total_drag_coeffs[digitized == i].mean() for i in range(1, len(bins))]
+#     cd_stds = [total_drag_coeffs[digitized == i].std() for i in range(1, len(bins))]
+#     cd_ci95s = [ 1.96 * (np.sqrt(len(digitized == i)))**-1 * total_drag_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
+#     result = packaging_binresults(total_lift_coeffs, cl_means, cl_stds, cl_ci95s, total_drag_coeffs, cd_means, cd_stds, cd_ci95s, )
+#     return 
 
 def collect_segments(mask_array, lift_coeffs, drag_coeffs):
     # Inputs:
@@ -331,15 +355,15 @@ def collect_segments(mask_array, lift_coeffs, drag_coeffs):
     cl_stds = np.zeros(len(mask_array))
     cl_ci95s = np.zeros(len(mask_array))
 
-    if np.shape(mask_array)[0]==1 or np.shape(mask_array)[1]==1:
-        for i in range(len(mask_array)):
-            cd_means = np.mean(drag_coeffs[mask_array[i]])
-            cd_stds = np.std(drag_coeffs[mask_array[i]])
-            cd_ci95s = 1.96 * cd_stds[i] * (np.sqrt(len(drag_coeffs[mask_array[i]])) **-1)
+    if np.shape(mask_array)[1]==len(lift_coeffs):
+        for i in range(np.shape(mask_array)[0]):
+            cd_means[i] = np.mean(drag_coeffs[mask_array[i]])
+            cd_stds[i] = np.std(drag_coeffs[mask_array[i]])
+            cd_ci95s[i] = 1.96 * cd_stds[i] * (np.sqrt(len(drag_coeffs[mask_array[i]])) **-1)
 
-            cl_means = np.mean(lift_coeffs[mask_array[i]])
-            cl_stds = np.std(lift_coeffs[mask_array[i]])
-            cl_ci95s = 1.96 * cl_stds[i] * (np.sqrt(len(lift_coeffs[mask_array[i]])) **-1)
+            cl_means[i] = np.mean(lift_coeffs[mask_array[i]])
+            cl_stds[i] = np.std(lift_coeffs[mask_array[i]])
+            cl_ci95s[i] = 1.96 * cl_stds[i] * (np.sqrt(len(lift_coeffs[mask_array[i]])) **-1)
     else:
         for i in range(len(mask_array)):
             cd_means[i] = np.mean(drag_coeffs[int(mask_array[i, 0]):int(mask_array[i, 1])])
@@ -349,6 +373,47 @@ def collect_segments(mask_array, lift_coeffs, drag_coeffs):
             cl_means[i] = np.mean(lift_coeffs[int(mask_array[i, 0]):int(mask_array[i, 1])])
             cl_stds[i] = np.std(lift_coeffs[int(mask_array[i, 0]):int(mask_array[i, 1])])
             cl_ci95s[i] = 1.96 * cl_stds[i] * (np.sqrt(len(lift_coeffs[int(mask_array[i, 0]):int(mask_array[i, 1])])) **-1)
-   
-
     return [cl_means, cl_stds, cl_ci95s, cd_means, cd_stds, cd_ci95s]
+
+def get_mask(df, start, end, year, month, day):
+    # Getting boolean mask from start and end times
+    start_time = get_datetime(start, year, month, day)
+    end_time = get_datetime(end, year, month, day)
+    mask = (df.index > start_time) & (df.index < end_time)
+    return mask
+
+def get_maskarray(df, segment_times, year, month, day):
+    masks = []
+    for i in range(np.shape(segment_times)[0]):
+        mask = get_mask(df, segment_times[i,0], segment_times[i,1], year, month, day)
+        masks.append(mask)
+    return masks
+
+def get_datetime(hour_string, year, month, day):
+    # Results completed datetime from hour string, and date
+    split_nums = hour_string.split(':')
+    hours = int(split_nums[0])
+    minutes = int(split_nums[1])
+    seconds = int(split_nums[2])
+    return pd.Timestamp(year=year, month=month, day=day, hour=hours, minute=minutes, second=seconds)
+
+# Removing elliptical lift CD 
+def rem_ellipticalperf(CL, CD, airplane):
+
+    CD_nell = CD - (CL**2 * (np.pi * airplane.AR)**-1)
+    return CD_nell
+
+# Work in progress
+def packaging_binresults(cl_total, cl_means, cl_stds, cl_ci95s, cd_total, cd_means, cd_stds, cd_ci95s, polarfit, aircraft):
+
+    # Packaging raw polars
+    rawpolar = pd.DataFrame.from_dict({'CD': cd_total, 'CL': cl_total})
+    # Packaging averaged polars
+    avepolar = pd.DataFrame.from_dict({'CD': cd_means, 'CL': cl_means})
+    # Packaging standard deviation polars
+    stdpolar = pd.DataFrame.from_dict({'CD': cd_stds, 'CL': cl_stds})
+    # Packaging 95% CI polars
+    ci95polar = pd.DataFrame.from_dict({'CD': cd_ci95s, 'CL': cl_ci95s})
+
+    package = main.result(rawpolar, avepolar, stdpolar, ci95polar, polarfit, aircraft)
+    return package

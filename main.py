@@ -5,6 +5,18 @@ import os
 import pickle
 from superwake_recording import RecordingLoader
 
+def data_load(data_path, data_folder, file_name, rate, interpolateM, processor):
+
+    rawdata_name = data_folder+'/'+file_name.split('.')[0]+'_'+rate+'_'+interpolateM+'_'+processor+'.pkl'
+
+    # Checking if the data is already pickled for analysis
+    if os.path.exists(data_path+rawdata_name):
+        df = pd.read_pickle(data_path+rawdata_name)
+    else:
+        df = get_data(processor, data_folder+'/'+file_name, rate)
+        df = df.interpolate(method=interpolateM)
+        pd.to_pickle(df, data_path+rawdata_name) # Storing parsed data
+    return df
 
 def save_figure(figure, plot_name, path, overwrite=False):
     # Saves figure to pdf and into pkl for opening later
