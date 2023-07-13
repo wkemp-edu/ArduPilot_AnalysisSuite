@@ -8,6 +8,91 @@ import main
 
 rho_ssl = 1.225
 
+class data():
+    def __init__(self, prop, motor, aircraft):
+        self.prop = prop
+        self.motor = motor
+        self.aircraft = aircraft
+        return
+    
+    def add_cruise(self, df):
+        # Attitude 
+        self.phi = np.deg2rad(df["RollAngle"].to_numpy())            # Bank angle in radians
+        self.pitch = np.deg2rad(df["PitchAngle"].to_numpy())         # Pitch angle in radians
+
+        # Inertial Measurement Unit
+        self.U_dot = df["XAcc_IMU"].to_numpy()                       # Acceleration in X direction
+
+        # Atmospheric adjustments:
+        self.rho = df["Pressure"].to_numpy() * (287 * (df["Ambient_Temperature"].to_numpy()+273.15))**-1             # Density found from barometer pressure & airspeed sensor temperatures
+        self.v_eas = df["Airspeed_Sensor0"].to_numpy()                               # Equivalent SSL airspeed (m/s)
+        self.v_tas = self.v_eas * np.sqrt(1.225) * np.sqrt(self.rho)**-1   # the true airspeed
+        self.q = 0.5 * self.rho * self.v_tas**2                            # Dynamic pressure 
+
+        # For Descent method
+        self.h = df["Altitude_POS"].to_numpy()                   # Altitude
+        self.Vd_eas = df["DescendingXK"].to_numpy()                  # Descent Rate from EKF (is it true or EAS at SSL?)
+        self.Vd_tas = self.Vd_eas * np.sqrt(1.225) * np.sqrt(self.rho)**-1   # the true airspeed
+
+        # Ground speed limiter
+        self.v_dem = df["Airspeed_Demanded"].to_numpy()
+
+        # Propulsion characterization
+        self.n = df["MotorRPM"].to_numpy() / 60                               # Revolutions per second
+        self.i_esc = df["EscCurrent"].to_numpy()
+        self.v_esc = df["EscVoltage"].to_numpy()
+        self.J = self.v_tas / (self.n * self.prop.diameter)
+        self.eff = self.prop.efficiency(self.J) * self.motor.efficiency(self.n, self.i_esc)
+
+        # Estimated propulsive power (New Fitting)
+        self.P_eta = eta_steady(self.prop, self.motor, self.v_tas, self.n, self.i_esc, self.v_esc)
+        self.P_ct = thrust_steady(self.prop, self.rho, self.v_tas, self.n)
+
+        # Getting drag coefficient
+        self.Cd_eta = preq2cd(self.aircraft, self.v_tas, self.q, self.P_eta)
+        self.Cd_ct = preq2cd(self.aircraft, self.v_tas, self.q, self.P_ct)
+
+        # Getting lift coefficient
+        self.CL = cl_banked(self.aircraft, self.q, self.phi)
+        return
+    
+    def add_descent(self, df):
+
+        # Attitude 
+        self.phi = np.deg2rad(df["RollAngle"].to_numpy())            # Bank angle in radians
+        self.pitch = np.deg2rad(df["PitchAngle"].to_numpy())         # Pitch angle in radians
+
+        # Inertial Measurement Unit
+        self.U_dot = df["XAcc_IMU"].to_numpy()                       # Acceleration in X direction
+
+        # Atmospheric adjustments:
+        self.rho = df["Pressure"].to_numpy() * (287 * (df["Ambient_Temperature"].to_numpy()+273.15))**-1             # Density found from barometer pressure & airspeed sensor temperatures
+        self.v_eas = df["Airspeed_Sensor0"].to_numpy()                               # Equivalent SSL airspeed (m/s)
+        self.v_tas = self.v_eas * np.sqrt(1.225) * np.sqrt(self.rho)**-1   # the true airspeed
+        self.q = 0.5 * self.rho * self.v_tas**2                            # Dynamic pressure 
+
+        # For Descent method
+        self.h = df["Altitude_POS"].to_numpy()                   # Altitude
+        self.Vd_eas = df["DescendingXK"].to_numpy()                  # Descent Rate from EKF (is it true or EAS at SSL?)
+        self.Vd_tas = self.Vd_eas * np.sqrt(1.225) * np.sqrt(self.rho)**-1   # the true airspeed
+
+        # Ground speed limiter
+        self.v_dem = df["Airspeed_Demanded"].to_numpy()
+
+        # Propulsion characterization
+        self.n = df["MotorRPM"].to_numpy() / 60                               # Revolutions per second
+        self.i_esc = df["EscCurrent"].to_numpy()
+        self.v_esc = df["EscVoltage"].to_numpy()
+        self.J = self.v_tas / (self.n * self.prop.diameter)
+
+        self.P_desc = desc2preq(self.aircraft, self.prop, self.rho, self.v_tas, self.n, self.q, self.Vd_tas)
+
+        # Getting drag coefficient
+        self.Cd_desc = preq2cd(self.aircraft, self.v_tas, self.q, self.P_desc)
+
+        # Getting lift coefficient
+        self.CL = cl_banked(self.aircraft, self.q, self.phi)
+
 # def masker_lua(throttle, current, dataframe):
 #     # Basic mask for Lua accelerations
 #     # Checking for throttle to zero, and current above 5A
