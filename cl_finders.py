@@ -282,7 +282,7 @@ def total_segments(variable, mask_startend):
 def total_segments_boolean(variable, mask_array, selection=None):
     total = np.array([])
     if selection != None:
-        for i in range(selection):
+        for i in selection:
             total = np.append(total, variable[mask_array[i]])
     else:
         for i in range(len(mask_array)):
@@ -310,8 +310,20 @@ def collect_bins(bins, total_lift_coeffs, total_drag_coeffs):
     cd_means = [total_drag_coeffs[digitized == i].mean() for i in range(1, len(bins))]
     cd_stds = [total_drag_coeffs[digitized == i].std() for i in range(1, len(bins))]
     cd_ci95s = [ 1.96 * (np.sqrt(len(digitized == i)))**-1 * total_drag_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
+
+    cl_means = remove_nan(cl_means)
+    cl_stds = remove_nan(cl_stds)
+    cl_ci95s = remove_nan(cl_ci95s)
+    cd_means = remove_nan(cd_means)
+    cd_stds = remove_nan(cd_stds)
+    cd_ci95s = remove_nan(cd_ci95s)
+
     return [cl_means, cl_stds, cl_ci95s, cd_means, cd_stds, cd_ci95s]
 
+def remove_nan(variable):
+    variable = np.array(variable)
+    variable = variable[~np.isnan(variable)]
+    return variable
 # def collect_bins_result(bins, total_lift_coeffs, total_drag_coeffs):
 #     # Inputs:
 #     # 1. bins: Numpy array that defines the bounds of the start and ends of each Coefficient of lift bin

@@ -18,23 +18,6 @@ def data_load(data_path, data_folder, file_name, rate, interpolateM, processor):
         pd.to_pickle(df, data_path+rawdata_name) # Storing parsed data
     return df
 
-def save_figure(figure, plot_name, path, overwrite=False):
-    # Saves figure to pdf and into pkl for opening later
-    if overwrite:
-        plt.savefig(path+plot_name+'.pdf', bbox_inches='tight')
-        pickle.dump(figure, open(path+plot_name+'.pkl', 'wb'))
-    elif os.path.exists(path+plot_name+'.pdf'):
-        print("Plot already exists")
-    else:
-        plt.savefig(path+plot_name+'.pdf', bbox_inches='tight')
-        pickle.dump(figure, open(path+plot_name+'.pkl', 'wb'))
-
-def open_figure(plot_name, path):
-    # Opens figure compressed to pkl file
-    figure = pickle.load(open(path+plot_name+'.pkl','rb'))
-    figure.suptitle(plot_name)
-    return figure
-
 def get_data(method, file_name, rate):
     
     #  Stating absolute path to data folder 
@@ -68,6 +51,23 @@ def get_data(method, file_name, rate):
     #  Resampling data to desired rate
     df = recording.resample(rate)
     return df
+
+def save_figure(figure, plot_name, path, overwrite=False):
+    # Saves figure to pdf and into pkl for opening later
+    if overwrite:
+        plt.savefig(path+plot_name+'.pdf', bbox_inches='tight')
+        pickle.dump(figure, open(path+plot_name+'.pkl', 'wb'))
+    elif os.path.exists(path+plot_name+'.pdf'):
+        print("Plot already exists")
+    else:
+        plt.savefig(path+plot_name+'.pdf', bbox_inches='tight')
+        pickle.dump(figure, open(path+plot_name+'.pkl', 'wb'))
+
+def open_figure(plot_name, path):
+    # Opens figure compressed to pkl file
+    figure = pickle.load(open(path+plot_name+'.pkl','rb'))
+    figure.suptitle(plot_name)
+    return figure
 
 class flight:
     def __init__(self, propeller, motor, airplane, dataframe):
