@@ -81,7 +81,6 @@ class aeronaut20x8:
             T_act = self.thrust_coeff(V_tas / (n_new * self.diameter)) * rho * n_new**2 * self.diameter**4
             error = np.abs(thrust - T_act)
             n_old = n_new
-            print(n_new)
         return n_new
     
     def getTorque(self, rho, n, V_tas):
@@ -160,18 +159,17 @@ class aeronaut185x12:
         dn = 0.2            # Incremental change to rev/s
 
         error_dem = 1e-5
-        T_act = self.thrust_coeff(V_tas / (n_old * self.diameter)) * rho * n_old**2 * self.diameter**4
+        T_act = self.thrust_coeff(J_old) * rho * n_old**2 * self.diameter**4
         error = np.abs(thrust - T_act)
         
         while error > error_dem:
             f_old = (self.thrust_coeff(V_tas / ((n_old) * self.diameter)) * rho * (n_old)**2 * self.diameter**4)
-            slope = ((self.thrust_coeff(V_tas / ((n_old+0.5*dn) * self.diameter)) * rho * (n_old+0.5*dn)**2 * self.diameter**4) \
-                - (self.thrust_coeff(V_tas / ((n_old-0.5*dn) * self.diameter)) * rho * (n_old-0.5*dn)**2 * self.diameter**4)) * dn**-1
-            n_new = n_old - (f_old/slope)
+            slope = ((self.thrust_coeff(V_tas / ((n_old-0.5*dn) * self.diameter)) * rho * (n_old-0.5*dn)**2 * self.diameter**4) \
+                - (self.thrust_coeff(V_tas / ((n_old+0.5*dn) * self.diameter)) * rho * (n_old+0.5*dn)**2 * self.diameter**4)) * dn**-1
+            n_new = n_old - ((thrust-f_old)/slope)
             T_act = self.thrust_coeff(V_tas / (n_new * self.diameter)) * rho * n_new**2 * self.diameter**4
             error = np.abs(thrust - T_act)
             n_old = n_new
-            print(n_new)
         return n_new
 
     def getTorque(self, rho, n, V_tas):
@@ -232,27 +230,30 @@ class aeronaut11x7_estimatedBEN:
 
         return self.thrust_coeff(J_old)
     
-    def getRPM(self, thrust, rho, V_tas):
+    def getRPM(self, thrust, rho, V_tas, n_guess=40):
         # Finding the RPM required for certain thrust @ true airspeed
 
         # Newton Ralphsen Method
-        n_old = 40          # Initial guess of rev/s
+        n_old = n_guess          # Initial guess of rev/s
         J_old = V_tas / (n_old * self.diameter)
         dn = 0.2            # Incremental change to rev/s
 
         error_dem = 1e-5
-        T_act = self.thrust_coeff(V_tas / (n_old * self.diameter)) * rho * n_old**2 * self.diameter**4
+        T_act = self.thrust_coeff(J_old) * rho * n_old**2 * self.diameter**4
         error = np.abs(thrust - T_act)
         
         while error > error_dem:
             f_old = (self.thrust_coeff(V_tas / ((n_old) * self.diameter)) * rho * (n_old)**2 * self.diameter**4)
-            slope = ((self.thrust_coeff(V_tas / ((n_old+0.5*dn) * self.diameter)) * rho * (n_old+0.5*dn)**2 * self.diameter**4) \
-                - (self.thrust_coeff(V_tas / ((n_old-0.5*dn) * self.diameter)) * rho * (n_old-0.5*dn)**2 * self.diameter**4)) * dn**-1
-            n_new = n_old - (f_old/slope)
+            slope = ((self.thrust_coeff(V_tas / ((n_old-0.5*dn) * self.diameter)) * rho * (n_old-0.5*dn)**2 * self.diameter**4) \
+                - (self.thrust_coeff(V_tas / ((n_old+0.5*dn) * self.diameter)) * rho * (n_old+0.5*dn)**2 * self.diameter**4)) * dn**-1
+            n_new = n_old - ((thrust-f_old)/slope)
             T_act = self.thrust_coeff(V_tas / (n_new * self.diameter)) * rho * n_new**2 * self.diameter**4
             error = np.abs(thrust - T_act)
             n_old = n_new
-            print(n_new)
+        # print("Demanded Thrust")
+        # print(thrust)
+        # print("Converged Thrust")
+        # print(T_act)
         return n_new
 
     def getTorque(self, rho, n, V_tas):
