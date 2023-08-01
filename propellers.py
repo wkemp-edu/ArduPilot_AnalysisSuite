@@ -250,10 +250,11 @@ class aeronaut11x7_estimatedBEN:
             T_act = self.thrust_coeff(V_tas / (n_new * self.diameter)) * rho * n_new**2 * self.diameter**4
             error = np.abs(thrust - T_act)
             n_old = n_new
-        # print("Demanded Thrust")
-        # print(thrust)
-        # print("Converged Thrust")
-        # print(T_act)
+        # # print("Demanded Thrust")
+        # if n_new < 0:
+        #     print(thrust)
+        # # print("Converged Thrust")
+        #     print(T_act)
         return n_new
 
     def getTorque(self, rho, n, V_tas):
