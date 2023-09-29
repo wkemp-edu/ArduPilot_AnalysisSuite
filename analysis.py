@@ -17,6 +17,9 @@ import pandas as pd
 from scipy import optimize 
 from scipy.io import savemat
 
+import decimal
+import math
+
 import plotly.express as px
 
 import main
@@ -27,6 +30,10 @@ import cl_finders
 
 import data_exporter
 import datetime
+
+from matplotlib.widgets import SpanSelector
+
+data_path = '../../data/'
 
 class analysis():
     def __init__(self, investigation_name, data_folder, file_name):
@@ -47,14 +54,66 @@ class analysis():
 
     def select_segments(self, segment_times=None, year=None, month=None, day=None):
         # Generates an array of segment start/end times, and a list of boolean masks for each segment.  
-        
+
         # either input an numpy array for interval selection, then generate the masks to store internally. Or start the graphical selection tool to start selecting parts.  
         # Check the results folder for a mask already there, use this if it is present. 
 
         if segment_times is None:
             # Starting selection process using GUI
-            self.masks = []
-        
+            self.segment_times = np.empty((0,2), str)
+            self.masks = np.array([])
+            segment_counter = 0         # To increment as more segments are added
+
+            # Creating index series to select data correctly
+            indices = np.arange(0, self.df.shape[0])
+            self.df["index_ref"] = indices
+
+            # Beginning selection using plot of Airspeed and Altitude
+            
+            fig = plt.figure(figsize=(20,10), dpi=75)
+            ax1 = plt.subplot(2,1,1)
+            ax1.plot(self.df.index, self.df.Airspeed_Sensor0)
+            ax2 = ax1.twiny()
+            ax2.plot(self.df.index_ref, self.df.Airspeed_Sensor0, label='Airspeed 0')
+            # ax2.plot(self.df.index_ref, self.df.Airspeed_Sensor1, label='Airspeed 1')
+            # ax2.plot(self.df.index_ref, self.df.Groundspeed_GPS, label='Ground speed')
+            ax2.plot(self.df.index_ref, self.df.Airspeed_Demanded, linestyle='solid', marker='', label='Demanded Airspeed')
+            ax2.legend(loc="upper left")
+            ax3 = plt.subplot(2, 1, 2, sharex=ax2)
+            ax3.plot(self.df.index_ref, self.df.Altitude_GPS, label='GPS Altitude')
+            ax3.legend(loc="upper left")
+
+            def onselect(xmin, xmax):
+
+                xmin = round(math.ceil(decimal.Decimal(xmin)))
+                xmax = round(math.ceil(decimal.Decimal(xmax)))
+                t_min = self.df.index[xmin]
+                t_max = self.df.index[xmax]
+
+                self.segment_interval = np.array([[str(t_min.hour).zfill(2)+':'+str(t_min.minute).zfill(2)+':'+str(t_max.second).zfill(2), str(t_max.hour).zfill(2)+':'+str(t_max.minute).zfill(2)+':'+str(t_max.second).zfill(2)]])
+                self.segment_times = np.append(self.segment_times, self.segment_interval, axis=0)
+
+                year = t_min.year
+                month = t_min.month
+                day = t_min.day
+
+                self.masks = []                             # List of boolean masks that are stored for each segment (Need to generate)
+                for i in range(np.shape(self.segment_times)[0]):
+                    mask = cl_finders.get_mask(self.df, self.segment_times[i,0], self.segment_times[i,1], year, month, day)
+                    self.masks.append(mask)
+
+            self.span = SpanSelector(
+                ax2,
+                onselect,
+                "horizontal",
+                useblit=True,
+                props=dict(alpha=0.5, facecolor="tab:blue"),
+                interactive=True,
+                drag_from_anywhere=True
+            )
+
+            plt.show()
+
         else:
             # Using the input segment times to generate a mask
             self.segment_times = segment_times          # Saving the segment time array for storage alongside the generated masks
@@ -62,7 +121,20 @@ class analysis():
             for i in range(np.shape(segment_times)[0]):
                 mask = cl_finders.get_mask(self.df, segment_times[i,0], segment_times[i,1], year, month, day)
                 self.masks.append(mask)
-            # Boolean 
+    # Function to save the selected segments to a pickle file in results
+    def save_segments(self):
+        print("testing this function")
+
+    # Function to load the segments from the investigation already done
+    def load_segments(self, file_name):
+
+        segresult_name = self.result_path + file_name
+        
+        # Checking if the data is already pickled for analysis
+        if os.path.exists(segresult_name):
+            df = pd.read_pickle(segresult_name)
+        else:
+            print("Error in finding segment file: " + segresult_name)
 
     def setup_folders(self):
         # Creating result, figure, folders if not in existence at specified paths
@@ -76,7 +148,6 @@ class analysis():
         plt.style.use('../../basic_plotter.mplstyle')
 
     def load_data(self, rate, interpolateM, processor):
-        data_path = '../../data/'
         self.df = main.data_load(data_path, self.data_folder, self.file_name, rate, interpolateM, processor)
         return
     
