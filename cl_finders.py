@@ -146,7 +146,6 @@ def eta_steady(propeller, motor, v_tas, n, current, voltage, oldfit=False):
     J_tas = v_tas * (n * propeller.diameter)**-1             # Advance ratio at TAS
     P_motor = current * voltage                              # Electrical power to ESC
 
-
     eta_motor = motor.efficiency(n, current)                 # Filtering out inf due to n=0
     eta_prop = propeller.efficiency(J_tas)                   # System efficiency including Zubax ESC
     eta_sys = eta_motor * eta_prop
@@ -343,12 +342,7 @@ def mask_fromTime(df, start_time, end_time):
     mask = (df.index > start_time) & (df.index < end_time)
     return mask
 
-def get_mask(df, start, end, year, month, day):
-    # Getting boolean mask from start and end times
-    start_time = get_datetime(start, year, month, day)
-    end_time = get_datetime(end, year, month, day)
-    mask = (df.index > start_time) & (df.index < end_time)
-    return mask
+
 
 def get_datetime(hour_string, year, month, day):
     # Results completed datetime from hour string, and date

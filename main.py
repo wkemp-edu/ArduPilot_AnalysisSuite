@@ -13,17 +13,18 @@ def data_load(data_path, data_folder, file_name, rate, interpolateM, processor):
     if os.path.exists(data_path+rawdata_name):
         df = pd.read_pickle(data_path+rawdata_name)
     else:
-        df = get_data(processor, data_folder+'/'+file_name, rate)
+        df = get_data(processor, data_path+data_folder+'/'+file_name, rate) # Changed 2023-09-25
         df = df.interpolate(method=interpolateM)
         pd.to_pickle(df, data_path+rawdata_name) # Storing parsed data
     return df
 
 def get_data(method, file_name, rate):
     
-    #  Stating absolute path to data folder 
-    root = "../data/"
+    #  Stating relative path to data folder 
+    # root = "../data/" # Changed 2023-09-25
+
     #  Creating path to individual file
-    file_path = root + file_name
+    file_path = file_name # Changed 2023-09-25 = root + file_name
 
     if method == "Alton":
         #  Selecting processor based on filename
