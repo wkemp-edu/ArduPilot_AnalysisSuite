@@ -45,6 +45,7 @@ def get_data(method, file_name, rate):
     df = recording.resample(rate)
     return df
 
+# Function to save figures easily
 def save_figure(figure, plot_name, path, overwrite=False):
     # Saves figure to pdf and into pkl for opening later
     if overwrite:
@@ -56,12 +57,15 @@ def save_figure(figure, plot_name, path, overwrite=False):
         plt.savefig(path+plot_name+'.pdf', bbox_inches='tight')
         pickle.dump(figure, open(path+plot_name+'.pkl', 'wb'))
 
+# Function for reading saved pickled figures
 def open_figure(plot_name, path):
     # Opens figure compressed to pkl file
     figure = pickle.load(open(path+plot_name+'.pkl','rb'))
     figure.suptitle(plot_name)
     return figure
 
+# Class for the flight that was done, not sure how often used
+# Possibly not at all
 class flight:
     def __init__(self, propeller, motor, airplane, dataframe):
         
@@ -71,6 +75,7 @@ class flight:
         self.airplane = airplane    # Containing variables intrinsic to CREATeV
         self.data = dataframe       # Containing imported BIN file
 
+# Class that contains the final result of the analysis, often used
 class result:
     def __init__(self, raw_polar, ave_polar, std_polar, ci95_polar, fit_polar, vehicle):
         self.raw_polar = raw_polar      # DataFrame with CL, CD data points
@@ -80,7 +85,7 @@ class result:
         self.fit_polar = fit_polar      # DataFrame with two polar fits, one low order, one high order
         self.vehicle = vehicle          # Vehicle the data was taken with, should contain a) Mass, b) Wing area, c) Aspect Ratio
 
-# Work in progress
+# Function for packing the results, using the class defined above
 def packaging_binresults(cl_total, cl_means, cl_stds, cl_ci95s, cd_total, cd_means, cd_stds, cd_ci95s, polarfit, aircraft):
 
     # Packaging raw polars
@@ -95,6 +100,7 @@ def packaging_binresults(cl_total, cl_means, cl_stds, cl_ci95s, cd_total, cd_mea
     package = result(rawpolar, avepolar, stdpolar, ci95polar, polarfit, aircraft)
     return package
 
+# Class that was defined in a previous code re-structure, old and probably relegated.  
 class analysis:
     def __init__(self, flight, test_name):
         self.type = test_name
