@@ -128,12 +128,15 @@ class analysis():
                 mask = cl_finders.get_mask(self.df, segment_times[i,0], segment_times[i,1], year, month, day)
                 self.masks.append(mask)
     # Function to save the selected segments to a pickle file in results
-    def save_segments(self, segment_times, year, month, day, file_name):
+    def save_segments(self, segment_times, year, month, day, file_name, overwrite=False):
         segresult_name = self.result_path + file_name
         segment_package = segment_packaging(segment_times, year, month, day)
-        with open(segresult_name, 'wb') as f:  # open a text file
-            pickle.dump(segment_package, f)
-        print("testing this function")
+
+        if os.path.exists(segresult_name) and not overwrite:
+            print("Segment file already exists, change to overwrite if necessary")
+        else:
+            with open(segresult_name, 'wb') as f:  # open a text file
+                pickle.dump(segment_package, f)
 
     # Function to load the segments from the investigation already done
     def load_segments(self, file_name):
@@ -151,6 +154,7 @@ class analysis():
         else:
             print("Error in finding segment file: " + segresult_name)
 
+    # Creating folders for results and figures if not already existing
     def setup_folders(self):
         # Creating result, figure, folders if not in existence at specified paths
         if not os.path.exists(self.result_path):
@@ -158,10 +162,12 @@ class analysis():
         if not os.path.exists(self.figure_path):
             os.makedirs(self.figure_path)
 
+    # Using a standard style of plot for matplotlib
     def setup_plotstyle(self):
         # Setting Plot Defaults
         plt.style.use('../../basic_plotter.mplstyle')
 
+    # Loading data with specific rate, interpolation, and processor
     def load_data(self, rate, interpolateM, processor):
         self.df = main.data_load(data_path, self.data_folder, self.file_name, rate, interpolateM, processor)
         return
@@ -275,9 +281,9 @@ class analysis():
             # Getting lift coefficient
             self.CL = cl_banked(self.aircraft, self.q, self.phi)
 
-    class segment_packaging():
-        def __init__(self, segment_times, year, month, day):
-            self.segment_times = segment_times
-            self.year = year
-            self.month = month
-            self.day = day
+class segment_packaging():
+    def __init__(self, segment_times, year, month, day):
+        self.segment_times = segment_times
+        self.year = year
+        self.month = month
+        self.day = day

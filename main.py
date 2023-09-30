@@ -5,6 +5,7 @@ import os
 import pickle
 from superwake_recording import RecordingLoader
 
+# Main data loading function --> Used often
 def data_load(data_path, data_folder, file_name, rate, interpolateM, processor):
 
     rawdata_name = data_folder+'/'+file_name.split('.')[0]+'_'+rate+'_'+interpolateM+'_'+processor+'.pkl'
@@ -18,6 +19,7 @@ def data_load(data_path, data_folder, file_name, rate, interpolateM, processor):
         pd.to_pickle(df, data_path+rawdata_name) # Storing parsed data
     return df
 
+# Main sub data loading function --> Used often
 def get_data(method, file_name, rate):
     
     #  Stating relative path to data folder 
@@ -38,17 +40,7 @@ def get_data(method, file_name, rate):
             print("Error in data name, make sure it has the year somewhere (eg 2021, 2022")
     else:
         recording = RecordingLoader.load(method, file_path)
-    # elif method == "CREATeV_2023":
-    #     recording = RecordingLoader.load(method, file_path)
-    # elif method == "CREATeV_2022":
-    #     recording = RecordingLoader.load(method, file_path)
-    # elif method == "ArduPlane_4_3_3":
-    #     recording = RecordingLoader.load(method, file_path)
-    # elif method == "CREATeV_2021":
-    #     recording = RecordingLoader.load(method, file_path)
-    # else:
-    #     print("Error importing data")
-    #    return
+
     #  Resampling data to desired rate
     df = recording.resample(rate)
     return df

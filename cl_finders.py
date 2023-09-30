@@ -403,29 +403,6 @@ def remove_nan(variable):
     variable = np.array(variable)
     variable = variable[~np.isnan(variable)]
     return variable
-# def collect_bins_result(bins, total_lift_coeffs, total_drag_coeffs):
-#     # Inputs:
-#     # 1. bins: Numpy array that defines the bounds of the start and ends of each Coefficient of lift bin
-#     # 2. lift_coeffs: Numpy array containing all usable lift raw data points (Time indexed)
-#     # 3. drag_coeffs: Numpy array containing all usable drag raw data points (Time indexed)
-
-#     # Outputs:
-#     # 1. means: Numpy array containing the means of all data points that lie within each defined bin
-#     # 2. stds: Numpy array containing the standard deviations of all data points that lie within each defined bin
-#     # 3. ci95s: Numpy array containing the 95% confident intervals of all data points that lie within each defined bin
-    
-#     digitized = np.digitize(total_lift_coeffs, bins)      # Creating indexed binning array
-
-#     # Using indexed binning array to generate means, standard deviations, and confidence intervals
-#     cl_means = [total_lift_coeffs[digitized == i].mean() for i in range(1, len(bins))]
-#     cl_stds = [total_lift_coeffs[digitized == i].std() for i in range(1, len(bins))]
-#     cl_ci95s = [ 1.96 * (np.sqrt(len(digitized == i)))**-1 * total_lift_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
-
-#     cd_means = [total_drag_coeffs[digitized == i].mean() for i in range(1, len(bins))]
-#     cd_stds = [total_drag_coeffs[digitized == i].std() for i in range(1, len(bins))]
-#     cd_ci95s = [ 1.96 * (np.sqrt(len(digitized == i)))**-1 * total_drag_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
-#     result = packaging_binresults(total_lift_coeffs, cl_means, cl_stds, cl_ci95s, total_drag_coeffs, cd_means, cd_stds, cd_ci95s, )
-#     return 
 
 def collect_segments(mask_array, lift_coeffs, drag_coeffs):
     # Inputs:
