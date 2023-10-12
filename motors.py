@@ -50,7 +50,7 @@ class U7V2_280KV:
         omega = 2 * np.pi * n
         i0 = i00 + i01*omega + i02*omega**2
         
-        efficiency = (1 - (i0/current)) * (Kv/Kq) * (1 + tau*omega + current*R*Kv*omega**-1)**-1;
+        efficiency = (1 - (i0/current)) * (Kv/Kq) * (1 + tau*omega + current*R*Kv*omega**-1)**-1
         return efficiency
 
     def motor_current(self, torque):
@@ -103,7 +103,7 @@ class VOLANTEX_1050KV:
         omega = 2 * np.pi * n
         i0 = i00 + i01*omega + i02*omega**2
         
-        efficiency = (1 - (i0/current)) * (Kv/Kq) * (1 + tau*omega + current*R*Kv*omega**-1)**-1;
+        efficiency = (1 - (i0/current)) * (Kv/Kq) * (1 + tau*omega + current*R*Kv*omega**-1)**-1
         return efficiency
 
     def motor_current(self, torque):
