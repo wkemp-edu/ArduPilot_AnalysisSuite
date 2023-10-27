@@ -20,8 +20,8 @@ from matplotlib import pyplot as plt
     
     # 18.5 x 12
     # * 2022-05-07
-    # * 2022-04-19
-    # * 2021-09-10
+    # * 2022-04-19 --> Yoke drag from 2022-04-18
+    # * 2021-09-10 --> Yoke drag from 2021-01-03
 
 class aeronaut20x8:
     
@@ -189,7 +189,7 @@ class aeronaut11x7_estimatedBEN:
         self.diameter = 0.288 # meters (This is slightly inconsistent with the diameter used by Ben 279.4 mm)
 
     def efficiency(self, J):
-    # Overall efficiency for a 18.5x12 system, with a polynomial fit, find details in onenote
+    # Overall efficiency
         eff = J * (self.thrust_coeff(J)/self.power_coeff(J))
         return eff
     
