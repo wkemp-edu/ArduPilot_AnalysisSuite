@@ -150,7 +150,6 @@ def eta_steady(propeller, motor, v_tas, n, current, voltage, oldfit=False):
     eta_prop = propeller.efficiency(J_tas)                   # System efficiency including Zubax ESC
     eta_sys = eta_motor * eta_prop
     P_eta = P_motor * eta_sys                                # Propulsive power estimate from efficiency
-    
     return P_eta
 
 def thrust_steady(propeller, rho, v_tas, n, oldfit=False):

@@ -2,16 +2,13 @@ from os import sys
 import os
 sys.path.append('../../')
 
-from matplotlib import pyplot as plt
-import numpy as np
-import pandas as pd
-from os import sys
-import os
-sys.path.append('../')
-
 # Getting packages #
 
 from matplotlib import pyplot as plt
+from matplotlib.widgets import SpanSelector
+import plotly.express as px
+
+import pickle
 import numpy as np
 import pandas as pd
 from scipy import optimize 
@@ -19,8 +16,6 @@ from scipy.io import savemat
 
 import decimal
 import math
-
-import plotly.express as px
 
 import main
 import propellers
@@ -31,9 +26,7 @@ import cl_finders
 import data_exporter
 import datetime
 
-from matplotlib.widgets import SpanSelector
-
-import pickle
+GRAV_K = 9.807
 
 data_path = '../../data/'
 
@@ -141,9 +134,9 @@ class Analysis:
                 self.masks.append(mask)
     
     # Function to save the selected segments to a pickle file in results
-    def save_segments(self, segment_times, year, month, day, file_name, overwrite=False):
+    def save_segments(self, file_name, overwrite=False):
         segresult_name = self.result_path + file_name
-        segment_package = segment_packaging(segment_times, year, month, day)
+        segment_package = segment_packaging(self.segment_times, self.year, self.month, self.day)
 
         if os.path.exists(segresult_name) and not overwrite:
             print("Segment file already exists, change to overwrite if necessary")
@@ -238,13 +231,12 @@ class Analysis:
         analysis_list = ['cruise_eta', 'cruise_ct', 'gliding', 'acceleration']
         if analysis_type == "cruise_eta":
             self.method = Method.add_cruise_eta(self.df, self.data_map)
-            self.result_data = self.method_data
         elif analysis_type == "cruise_ct":
-            self.method_data = Method.add_cruise_ct(self.df, self.data_map)
+            self.method = Method.add_cruise_ct(self.df, self.data_map)
         elif analysis_type == "gliding":
-            self.method_data = Method.add_descent(self.df, self.data_map)
+            self.method = Method.add_descent(self.df, self.data_map)
         elif analysis_type == "acceleration":
-            self.method_data = Method.add_acceleration(self.df, self.data_map)
+            self.method = Method.add_acceleration(self.df, self.data_map)
         else:
             print("Make sure the analysis type is one of the following: ")
             print(analysis_list)
@@ -255,85 +247,173 @@ class Method():
         self.data = None                # Where the raw variables are to be stored for the particular method
         return
     
-    def add_cruise_eta(self, df, data_map):
+    # Steady-level cruising efficiency method
+    def add_cruise_eta(self, analysis):
         # Attitude 
-        self.data.phi = np.deg2rad(df[data_map["Phi"]].to_numpy())            # Bank angle in radians
-        self.data.pitch = np.deg2rad(df[data_map["Theta"]].to_numpy())         # Pitch angle in radians
+        self.data.phi = np.deg2rad(analysis.df[analysis.data_map["Phi"]].to_numpy())            # Bank angle in radians
+        self.data.pitch = np.deg2rad(analysis.df[analysis.data_map["Theta"]].to_numpy())         # Pitch angle in radians
 
         # Inertial Measurement Unit
-        self.data.U_dot = df["XAcc_IMU"].to_numpy()                       # Acceleration in X direction
+        self.data.U_dot = analysis.df["XAcc_IMU"].to_numpy()                       # Acceleration in X direction
 
         # Atmospheric adjustments:
-        self.data.rho = df["Pressure"].to_numpy() * (287 * (df["Ambient_Temperature"].to_numpy()+273.15))**-1             # Density found from barometer pressure & airspeed sensor temperatures
-        self.data.v_eas = df["Airspeed_Sensor0"].to_numpy()                               # Equivalent SSL airspeed (m/s)
-        self.data.v_tas = self.v_eas * np.sqrt(1.225) * np.sqrt(self.rho)**-1   # the true airspeed
-        self.data.q = 0.5 * self.rho * self.v_tas**2                            # Dynamic pressure 
+        self.data.rho = analysis.df["Pressure"].to_numpy() * (287 * (analysis.df["Ambient_Temperature"].to_numpy()+273.15))**-1             # Density found from barometer pressure & airspeed sensor temperatures
+        self.data.v_eas = analysis.df["Airspeed_Sensor0"].to_numpy()                               # Equivalent SSL airspeed (m/s)
+        self.data.v_tas = self.data.v_eas * np.sqrt(1.225) * np.sqrt(self.data.rho)**-1   # the true airspeed
+        self.data.q = 0.5 * self.data.rho * self.data.v_tas**2                            # Dynamic pressure 
 
         # For Descent method
-        self.data.h = df["Altitude_POS"].to_numpy()                   # Altitude
-        self.data.Vd_eas = df["DescendingXK"].to_numpy()                  # Descent Rate from EKF (is it true or EAS at SSL?)
-        self.data.Vd_tas = self.Vd_eas * np.sqrt(1.225) * np.sqrt(self.rho)**-1   # the true airspeed
+        self.data.h = analysis.df["Altitude_POS"].to_numpy()                   # Altitude
+        self.data.Vd_eas = analysis.df["DescendingXK"].to_numpy()                  # Descent Rate from EKF (is it true or EAS at SSL?)
+        self.data.Vd_tas = self.data.Vd_eas * np.sqrt(1.225) * np.sqrt(self.data.rho)**-1   # the true airspeed
 
         # Ground speed limiter
-        self.data.v_dem = df["Airspeed_Demanded"].to_numpy()
+        self.data.v_dem = analysis.df["Airspeed_Demanded"].to_numpy()
 
         # Propulsion characterization
-        self.data.n = df["MotorRPM"].to_numpy() / 60                               # Revolutions per second
-        self.data.i_esc = df["EscCurrent"].to_numpy()
-        self.data.v_esc = df["EscVoltage"].to_numpy()
-        self.data.J = self.v_tas / (self.n * self.prop.diameter)
-        self.data.eff = self.prop.efficiency(self.J) * self.motor.efficiency(self.n, self.i_esc)
+        self.data.n = analysis.df["MotorRPM"].to_numpy() / 60                               # Revolutions per second
+        self.data.i_esc = analysis.df["EscCurrent"].to_numpy()
+        self.data.v_esc = analysis.df["EscVoltage"].to_numpy()
+        self.data.J = self.data.v_tas / (self.data.n * analysis.propeller.diameter)
+        self.data.eff = analysis.propeller.efficiency(self.data.J) * analysis.motor.efficiency(self.data.n, self.data.i_esc)
 
+        ## Main Analysis Functions
         # Estimated propulsive power (New Fitting)
-        self.data.P_eta = cl_finders.eta_steady(self.prop, self.motor, self.v_tas, self.n, self.i_esc, self.v_esc)
-        self.data.P_ct = cl_finders.thrust_steady(self.prop, self.rho, self.v_tas, self.n)
+        self.data.P_req = cl_finders.eta_steady(analysis.propeller, analysis.motor, self.data.v_tas, self.data.n, self.data.i_esc, self.data.v_esc)
 
         # Getting drag coefficient
-        self.data.Cd_eta = cl_finders.preq2cd(self.aircraft, self.v_tas, self.q, self.P_eta)
-        self.data.Cd_ct = cl_finders.preq2cd(self.aircraft, self.v_tas, self.q, self.P_ct)
+        self.data.CD = cl_finders.preq2cd(analysis.airframe, self.data.v_tas, self.data.q, self.data.P_req)
 
         # Getting lift coefficient
-        self.data.CL = cl_finders.cl_banked(self.aircraft, self.q, self.phi)
+        self.data.CL = cl_finders.cl_banked(analysis.airframe, self.data.q, self.data.phi)
         return
     
-    def add_descent(self, df, data_map):
-
+    # Steady-level cruising thrust method
+    def add_cruise_ct(self, analysis):
         # Attitude 
-        self.phi = np.deg2rad(df["RollAngle"].to_numpy())            # Bank angle in radians
-        self.pitch = np.deg2rad(df["PitchAngle"].to_numpy())         # Pitch angle in radians
+        self.data.phi = np.deg2rad(analysis.df[analysis.data_map["Phi"]].to_numpy())            # Bank angle in radians
+        self.data.pitch = np.deg2rad(analysis.df[analysis.data_map["Theta"]].to_numpy())         # Pitch angle in radians
 
         # Inertial Measurement Unit
-        self.U_dot = df["XAcc_IMU"].to_numpy()                       # Acceleration in X direction
+        self.data.U_dot = analysis.df["XAcc_IMU"].to_numpy()                       # Acceleration in X direction
 
         # Atmospheric adjustments:
-        self.rho = df["Pressure"].to_numpy() * (287 * (df["Ambient_Temperature"].to_numpy()+273.15))**-1             # Density found from barometer pressure & airspeed sensor temperatures
-        self.v_eas = df["Airspeed_Sensor0"].to_numpy()                               # Equivalent SSL airspeed (m/s)
-        self.v_tas = self.v_eas * np.sqrt(1.225) * np.sqrt(self.rho)**-1   # the true airspeed
-        self.q = 0.5 * self.rho * self.v_tas**2                            # Dynamic pressure 
+        self.data.rho = analysis.df["Pressure"].to_numpy() * (287 * (analysis.df["Ambient_Temperature"].to_numpy()+273.15))**-1             # Density found from barometer pressure & airspeed sensor temperatures
+        self.data.v_eas = analysis.df["Airspeed_Sensor0"].to_numpy()                               # Equivalent SSL airspeed (m/s)
+        self.data.v_tas = self.data.v_eas * np.sqrt(1.225) * np.sqrt(self.data.rho)**-1   # the true airspeed
+        self.data.q = 0.5 * self.data.rho * self.data.v_tas**2                            # Dynamic pressure 
 
         # For Descent method
-        self.h = df["Altitude_POS"].to_numpy()                   # Altitude
-        self.Vd_eas = df["DescendingXK"].to_numpy()                  # Descent Rate from EKF (is it true or EAS at SSL?)
-        self.Vd_tas = self.Vd_eas * np.sqrt(1.225) * np.sqrt(self.rho)**-1   # the true airspeed
+        self.data.h = analysis.df["Altitude_POS"].to_numpy()                   # Altitude
+        self.data.Vd_eas = analysis.df["DescendingXK"].to_numpy()                  # Descent Rate from EKF (is it true or EAS at SSL?)
+        self.data.Vd_tas = self.data.Vd_eas * np.sqrt(1.225) * np.sqrt(self.data.rho)**-1   # the true airspeed
 
         # Ground speed limiter
-        self.v_dem = df["Airspeed_Demanded"].to_numpy()
+        self.data.v_dem = analysis.df["Airspeed_Demanded"].to_numpy()
 
         # Propulsion characterization
-        self.n = df["MotorRPM"].to_numpy() / 60                               # Revolutions per second
-        self.i_esc = df["EscCurrent"].to_numpy()
-        self.v_esc = df["EscVoltage"].to_numpy()
-        self.J = self.v_tas / (self.n * self.prop.diameter)
+        self.data.n = analysis.df["MotorRPM"].to_numpy() / 60                               # Revolutions per second
+        self.data.i_esc = analysis.df["EscCurrent"].to_numpy()
+        self.data.v_esc = analysis.df["EscVoltage"].to_numpy()
+        self.data.J = self.data.v_tas / (self.data.n * analysis.propeller.diameter)
+        self.data.eff = analysis.propeller.efficiency(self.data.J) * analysis.motor.efficiency(self.data.n, self.data.i_esc)
 
-        self.P_desc = desc2preq(self.aircraft, self.prop, self.rho, self.v_tas, self.n, self.q, self.Vd_tas)
+        ## Main Analysis Functions
+        # Estimated propulsive power (New Fitting)
+        self.data.P_req = cl_finders.thrust_steady(analysis.propeller, self.data.rho, self.data.v_tas, self.data.n)
 
         # Getting drag coefficient
-        self.Cd_desc = preq2cd(self.aircraft, self.v_tas, self.q, self.P_desc)
+        self.data.CD = cl_finders.preq2cd(analysis.airframe, self.data.v_tas, self.data.q, self.data.P_req)
 
         # Getting lift coefficient
-        self.CL = cl_banked(self.aircraft, self.q, self.phi)
+        self.data.CL = cl_finders.cl_banked(analysis.airframe, self.data.q, self.data.phi)
+        return
+    
+    # Steady unpowered descent method
+    def add_descent(self, analysis):
 
-    def add_acceleration(self, df, data_map):
+        # Attitude 
+        self.data.phi = np.deg2rad(analysis.df["RollAngle"].to_numpy())            # Bank angle in radians
+        self.data.pitch = np.deg2rad(analysis.df["PitchAngle"].to_numpy())         # Pitch angle in radians
+
+        # Inertial Measurement Unit
+        self.data.U_dot = analysis.df["XAcc_IMU"].to_numpy()                       # Acceleration in X direction
+
+        # Atmospheric adjustments:
+        self.data.rho = analysis.df["Pressure"].to_numpy() * (287 * (analysis.df["Ambient_Temperature"].to_numpy()+273.15))**-1             # Density found from barometer pressure & airspeed sensor temperatures
+        self.data.v_eas = analysis.df["Airspeed_Sensor0"].to_numpy()                               # Equivalent SSL airspeed (m/s)
+        self.data.v_tas = self.data.v_eas * np.sqrt(1.225) * np.sqrt(self.data.rho)**-1   # the true airspeed
+        self.data.q = 0.5 * self.data.rho * self.data.v_tas**2                            # Dynamic pressure 
+
+        # For Descent method
+        self.data.h = analysis.df["Altitude_POS"].to_numpy()                   # Altitude
+        self.data.Vd_eas = analysis.df["DescendingXK"].to_numpy()                  # Descent Rate from EKF (is it true or EAS at SSL?)
+        self.data.Vd_tas = self.data.Vd_eas * np.sqrt(1.225) * np.sqrt(self.data.rho)**-1   # the true airspeed
+
+        # Ground speed limiter
+        self.data.v_dem = analysis.df["Airspeed_Demanded"].to_numpy()
+
+        # Propulsion characterization
+        self.data.n = analysis.df["MotorRPM"].to_numpy() / 60                               # Revolutions per second
+        self.data.i_esc = analysis.df["EscCurrent"].to_numpy()
+        self.data.v_esc = analysis.df["EscVoltage"].to_numpy()
+        self.data.J = self.data.v_tas / (self.data.n * analysis.propeller.diameter)
+
+        ## Main Analysis Functions
+        self.data.P_req = cl_finders.desc2preq(analysis.airframe, analysis.propeller, self.rho, self.v_tas, self.n, self.q, self.Vd_tas)
+
+        # Getting drag coefficient
+        self.data.CD = cl_finders.preq2cd(analysis.airframe, self.data.v_tas, self.data.q, self.data.P_req)
+
+        # Getting lift coefficient
+        self.data.CL = cl_finders.cl_banked(analysis.airframe, self.data.q, self.data.phi)
+
+    def add_fullacceleration(self, analysis):
+        # Beginning Power Required Calculation #
+
+        # Atmospheric adjustments:
+        self.data.rho = analysis.df["Pressure"].to_numpy() * (287 * (analysis.df["Ambient_Temperature"].to_numpy()+273.15))**-1             # Density found from barometer pressure & airspeed sensor temperatures
+        self.data.v_eas = analysis.df["Airspeed_Sensor0"].to_numpy()                               # Equivalent SSL airspeed (m/s)
+        self.data.v_tas = self.data.v_eas * np.sqrt(1.225) * np.sqrt(self.data.rho)**-1   # the true airspeed
+        self.data.q = 0.5 * self.data.rho * self.data.v_tas**2                            # Dynamic pressure 
+
+        self.data.n = analysis.df["MotorRPM"].to_numpy() / 60
+        self.data.J = self.data.v_tas / (self.data.n * analysis.propeller.diameter)
+        self.data.CT = analysis.propeller.thrust_coeff(self.data.J)
+        self.data.T = self.data.CT * self.data.rho * self.data.n**2 * analysis.propeller.diameter**4
+        P_req_t1 = (self.data.T * self.data.v_tas)
+        P_req_t2 = (analysis.airframe.mass * GRAV_K * self.data.Vd_tas)
+        P_req_t3 = -(analysis.airframe.mass * self.data.U_dot * self.data.v_tas)
+        P_req_t4 = -(analysis.airframe.mass * self.data.W_dot * self.data.v_tas * self.data.alpha)
+
+        P_req_q = mass * v_tas * (Q*U*alpha - Q*W)
+        P_req_pr = mass * v_tas * (R*V - P*V)
+
+        P_req = P_req_t1 + P_req_t2 + P_req_t3 + P_req_t4 + P_req_q + P_req_pr
+        return
+    
+    def add_PQRNullacceleration(self, analysis):
+        P_req_t1 = (T * v_tas)
+        P_req_t2 = (mass * g * Vd_tas)
+        P_req_t3 = -(mass * U_dot * v_tas)
+        P_req_t4 = -(mass * W_dot * v_tas * alpha)
+
+        P_req = P_req_t1 + P_req_t2 + P_req_t3 + P_req_t4
+        return
+    
+    def add_alphaNullacceleration(self, analysis):
+        P_req_t1 = (T * v_tas)
+        P_req_t2 = (mass * g * Vd_tas)
+        P_req_t3 = -(mass * U_dot * v_tas)
+
+        P_req = P_req_t1 + P_req_t2 + P_req_t3
+        return
+    
+    def add_Nullacceleration(self, analysis):
+        P_req_t1 = (T * v_tas)
+        P_req_t2 = (mass * g * Vd_tas)
+
+        P_req = P_req_t1 + P_req_t2
         return
     
     def collect_segments(mask_array, lift_coeffs, drag_coeffs):
@@ -406,13 +486,17 @@ class Method():
 
         return [cl_means, cl_stds, cl_ci95s, cd_means, cd_stds, cd_ci95s]
     
+    def collect_totals():
+
+        return
+
     def remove_nan(variable):
         variable = np.array(variable)
         variable = variable[~np.isnan(variable)]
         return variable
 
-    # Function for packing the results, using the class defined above
-    def packaging_results(cl_total, cl_means, cl_stds, cl_ci95s, cd_total, cd_means, cd_stds, cd_ci95s, polarfit, aircraft):
+    # Function for packing the results, using the class defined below
+    def packaging_results(self, cl_total, cl_means, cl_stds, cl_ci95s, cd_total, cd_means, cd_stds, cd_ci95s, polarfit, aircraft):
         # Packaging raw polars
         rawpolar = pd.DataFrame.from_dict({'CD': cd_total, 'CL': cl_total})
         # Packaging averaged polars
@@ -423,6 +507,8 @@ class Method():
         ci95polar = pd.DataFrame.from_dict({'CD': cd_ci95s, 'CL': cl_ci95s})
 
         package = result(rawpolar, avepolar, stdpolar, ci95polar, polarfit, aircraft)
+
+        self.results = package
         return package
     
 class segment_packaging():
