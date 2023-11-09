@@ -288,6 +288,23 @@ def polar2preqew(aircraft, polar, airspeed_range, createvstandardweight=True):
         Pew_req = ((0.5 * rho_ssl * EAS_SL**3) * aircraft.area * polar[0]) + ( (0.5*rho_ssl*EAS_SL**3*aircraft.area) * ((np.pi*aircraft.AR*polar[1])**-1) * ((2*W_ew*(rho_ssl*EAS_SL**2*aircraft.area)**-1) - polar[2])**2)
     return Pew_req, EAS_SL
 
+def rawpolar2preqew(aircraft, CL, CD):
+    # Turning the fitted drag polar parameters into a power required for steady level flight @ standard SL
+    # Inputs:
+        # 1. Polar:  array of numpy (size determines the polar equation used)
+        # 2. Airspeed range, range of airspeeds desired for analysis (tuple)
+        
+    # Outputs:
+        # 1. Power required (W) @ SL @ standard weight (12.6 kg)
+        # 2. Equivalent Airspeed @ Standard sea level
+    
+    rho_ssl = 1.225 # Standard density at sea level
+    W_ew = aircraft.weight
+    
+    EAS_SL = np.sqrt(W_ew / (0.5 * rho_ssl * aircraft.area * CL))
+    Pew_req = CD * 0.5 * rho_ssl * EAS_SL**3 * aircraft.area
+    return Pew_req, EAS_SL
+
 def angleModel(CL, aoa, model):
     # Fitting CL to angle of attack using 2nd order polynomial
     # Inputs:
