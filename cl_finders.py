@@ -241,14 +241,28 @@ def cd2polar(aircraft, CD, CL, highorder=False):
         K = popt[1]
         CL_mind = popt[2]
         e = (np.pi * aircraft.AR * K)**-1
+
+        # Printing Fit Quality (R^2)
+        residuals = CD - polarcurve_fit_ho(CL, *popt)
+        ss_res = np.sum(residuals**2)
+        ss_tot = np.sum((CD - np.mean(CD))**2)
+        r_square = 1 - (ss_res/ss_tot)
+        print(r_square)
         return np.array([CD0, e, CL_mind])
     else:
         popt, pcov = curve_fit(polarcurve_fit, CL**2, CD, p0=[0, 0.01], maxfev=50000, method='dogbox')
         CD0 = popt[0]
         K = popt[1]
         e = (np.pi * aircraft.AR * K)**-1
+
+        # Printing Fit Quality (R^2)
+        residuals = CD - polarcurve_fit(CL, *popt)
+        ss_res = np.sum(residuals**2)
+        ss_tot = np.sum((CD - np.mean(CD))**2)
+        r_square = 1 - (ss_res/ss_tot)
+        print(r_square)
         return np.array([CD0, e])
-    
+
 def plotfittedpolar(aircraft, polar, CL_range):
 
     # Plotting the fitted drag polar over the desired lift range
