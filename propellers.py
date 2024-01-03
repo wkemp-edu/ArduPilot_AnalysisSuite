@@ -150,6 +150,12 @@ class aeronaut185x12:
 
         return self.thrust_coeff(J_old)
     
+    def getFreewheelRPM(self, V_tas):
+        # Finding RPM from the linear fit of 18,5 x 12 and U7V2 motor in wind tunnel, between V and RPM.  
+        R1 = 157.3742700262500
+        R2 = -117.5973
+        return R1 * V_tas + R2
+
     def getRPM(self, thrust, rho, V_tas):
         # Finding the RPM required for certain thrust @ true airspeed
 

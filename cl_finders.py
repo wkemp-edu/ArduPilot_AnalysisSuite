@@ -206,6 +206,25 @@ def descU2preq(aircraft, propeller, rho, v, n, q, Vd, theta, U_dot):
     print("Propeller Drag" + str(P_propdrag))
     P_req = P_req - P_propdrag  # Removing the drag from the freewheeling propeller
     return P_req
+
+# The function that should be used for gliding power required measurements
+def desc2preq_WT(aircraft, propeller, rho, v, Vd):
+    # Inputs:
+        # Aircraft
+        # v in true airspeed
+        # q dynamic pressure
+        # Vd descent rate (true)
+    RPM_wtfit = propeller.getFreewheelRPM(v)
+    n_wtfit = RPM_wtfit / 60 
+    J_wtfit = v / (n_wtfit * propeller.diameter)
+
+    CT_wtfit = propeller.thrust_coeff(J_wtfit)
+    D_wtfit = -1*(CT_wtfit) * rho * n_wtfit**2 * propeller.diameter**4
+    D_total = (aircraft.weight * Vd) / v
+    P_req = (D_total - D_wtfit) * v
+
+    print("Propeller Drag" + str(D_wtfit))
+    return P_req
     
 def preq2cd(aircraft, v, q, p_required):
     # Inputs:
