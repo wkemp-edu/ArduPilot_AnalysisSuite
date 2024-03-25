@@ -433,11 +433,12 @@ def collect_bins(bins, total_lift_coeffs, total_drag_coeffs):
     # Using indexed binning array to generate means, standard deviations, and confidence intervals
     cl_means = [total_lift_coeffs[digitized == i].mean() for i in range(1, len(bins))]
     cl_stds = [total_lift_coeffs[digitized == i].std() for i in range(1, len(bins))]
-    cl_ci95s = [ 1.96 * (np.sqrt(len(digitized == i)))**-1 * total_lift_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
+    cl_ci95s = [ 1.96 * (np.sqrt(len(total_lift_coeffs[digitized == i])))**-1 * total_lift_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
+    # cl_ci95s = [ 1.96 * (np.sqrt(len(digitized == i)))**-1 * total_lift_coeffs[digitized == i].std() for i in range(1, len(bins)) ] original definition
 
     cd_means = [total_drag_coeffs[digitized == i].mean() for i in range(1, len(bins))]
     cd_stds = [total_drag_coeffs[digitized == i].std() for i in range(1, len(bins))]
-    cd_ci95s = [ 1.96 * (np.sqrt(len(digitized == i)))**-1 * total_drag_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
+    cd_ci95s = [ 1.96 * (np.sqrt(len(total_drag_coeffs[digitized == i])))**-1 * total_drag_coeffs[digitized == i].std() for i in range(1, len(bins)) ]
 
     cl_means = remove_nan(cl_means)
     cl_stds = remove_nan(cl_stds)
